@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComprasRouteImport } from './routes/compras'
+import { Route as FaturasIndexRouteImport } from './routes/faturas.index'
+import { Route as FaturasIdRouteImport } from './routes/faturas.$id'
+import { Route as PessoasIndexRouteImport } from './routes/pessoas.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +25,58 @@ const ComprasRoute = ComprasRouteImport.update({
   path: '/compras',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaturasIndexRoute = FaturasIndexRouteImport.update({
+  id: '/faturas/',
+  path: '/faturas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaturasIdRoute = FaturasIdRouteImport.update({
+  id: '/faturas/$id',
+  path: '/faturas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasIndexRoute = PessoasIndexRouteImport.update({
+  id: '/pessoas/',
+  path: '/pessoas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/faturas/$id': typeof FaturasIdRoute
+  '/faturas/': typeof FaturasIndexRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/faturas/$id': typeof FaturasIdRoute
+  '/faturas': typeof FaturasIndexRoute
+  '/pessoas': typeof PessoasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/faturas/$id': typeof FaturasIdRoute
+  '/faturas/': typeof FaturasIndexRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/compras'
+  fullPaths: '/' | '/compras' | '/faturas/$id' | '/faturas/' | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compras'
-  id: '__root__' | '/' | '/compras'
+  to: '/' | '/compras' | '/faturas/$id' | '/faturas' | '/pessoas'
+  id: '__root__' | '/' | '/compras' | '/faturas/$id' | '/faturas/' | '/pessoas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComprasRoute: typeof ComprasRoute
+  FaturasIdRoute: typeof FaturasIdRoute
+  FaturasIndexRoute: typeof FaturasIndexRoute
+  PessoasIndexRoute: typeof PessoasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +95,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComprasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faturas/': {
+      id: '/faturas/'
+      path: '/faturas'
+      fullPath: '/faturas/'
+      preLoaderRoute: typeof FaturasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faturas/$id': {
+      id: '/faturas/$id'
+      path: '/faturas/$id'
+      fullPath: '/faturas/$id'
+      preLoaderRoute: typeof FaturasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/': {
+      id: '/pessoas/'
+      path: '/pessoas'
+      fullPath: '/pessoas/'
+      preLoaderRoute: typeof PessoasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComprasRoute: ComprasRoute,
+  FaturasIdRoute: FaturasIdRoute,
+  FaturasIndexRoute: FaturasIndexRoute,
+  PessoasIndexRoute: PessoasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
