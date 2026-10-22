@@ -108,7 +108,7 @@ export function ExcelImportDialog({ open, onOpenChange }: { open: boolean; onOpe
   analyzed.forEach((a, i) => {
     if (!a.date || a.amount === null) return;
     const inFile = analyzed.slice(0, i).some((b) => b.date === a.date && b.amount === a.amount && b.description.toLowerCase() === a.description.toLowerCase());
-    const inApp = state.duplicateCheck !== false && state.transactions.some((t) => t.date === a.date && t.amount === a.amount && t.description.toLowerCase() === a.description.toLowerCase());
+    const inApp = state.transactions.some((t) => t.date === a.date && t.amount === a.amount && t.description.toLowerCase() === a.description.toLowerCase());
     if (state.settings.duplicateCheck && (inFile || inApp)) a.dup = true;
   });
   const blocking = analyzed.filter((a) => !a.date || a.amount === null || !a.description);
