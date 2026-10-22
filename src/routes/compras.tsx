@@ -10,7 +10,7 @@ import { TransactionTable } from "@/components/app/TransactionTable";
 import { useTxActions } from "@/components/app/tx-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FilterSelect, ALL } from "@/components/app/FilterSelect";
 
 type Search = { status?: string; person?: string; card?: string; type?: string; q?: string; month?: string };
 
@@ -34,7 +34,6 @@ export const Route = createFileRoute("/compras")({
   component: Compras,
 });
 
-const ALL = "__all";
 
 function Compras() {
   const { state } = useFinance();
@@ -103,16 +102,3 @@ function Compras() {
   );
 }
 
-export function FilterSelect({ label, value, onChange, options, noAll }: { label: string; value?: string; onChange: (v: string | undefined) => void; options: [string, string][]; noAll?: boolean }) {
-  return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL && !noAll ? undefined : v)}>
-      <SelectTrigger className="w-auto min-w-[140px]" aria-label={label}>
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        {!noAll && <SelectItem value={ALL}>{label}: todos</SelectItem>}
-        {options.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
-      </SelectContent>
-    </Select>
-  );
-}
