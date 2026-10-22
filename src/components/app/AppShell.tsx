@@ -1,0 +1,157 @@
+import type { ReactNode } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  Bell, CalendarClock, CreditCard, FileSpreadsheet, FileText, LayoutDashboard, RotateCcw, Settings, ShoppingBag, Users, Wallet,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useFinance } from "@/lib/finance/store";
+import { useAlerts } from "@/lib/finance/alerts";
+import { DemoTag } from "./common";
+import { TxActionsProvider } from "./tx-actions";
+import { cn } from "@/lib/utils";
+
+const NAV = [
+  { title: "Visão geral", url: "/", icon: LayoutDashboard },
+  { title: "Faturas", url: "/faturas", icon: FileText },
+  { title: "Compras", url: "/compras", icon: ShoppingBag },
+  { title: "Pessoas", url: "/pessoas", icon: Users },
+  { title: "Cartões", url: "/cartoes", icon: CreditCard },
+  { title: "Parcelamentos", url: "/parcelamentos", icon: CalendarClock },
+  { title: "Relatórios", url: "/relatorios", icon: FileSpreadsheet },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
+] as const;
+
+function AppSidebar() {
+  const path = useRouterState({ select: (r) => r.location.pathname });
+  const isActive = (u: string) => (u === "/" ? path === "/" : path.startsWith(u));
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex items-center gap-2 px-1 py-1.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Wallet className="size-4" />
+          </span>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate text-sm font-bold text-sidebar-accent-foreground">Fatura em Dia</p>
+            <p className="truncate text-xs opacity-70">Organizador de cartões</p>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV.map((n) => (
+                <SidebarMenuItem key={n.url}>
+                  <SidebarMenuButton asChild isActive={isActive(n.url)} tooltip={n.title}>
+                    <Link to={n.url}>
+                      <n.icon />
+                      <span>{n.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <p className="px-2 pb-1 text-[11px] leading-snug opacity-60 group-data-[collapsible=icon]:hidden">
+          Versão de demonstração. Dados salvos apenas neste navegador.
+        </p>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+function Notifications() {
+  const alerts = useAlerts();
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative" aria-label={`Notificações (${alerts.length})`}>
+          <Bell className="size-4" />
+          {alerts.length > 0 && (
+            <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-danger text-[10px] font-bold text-primary-foreground">
+              {alerts.length}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <p className="border-b px-4 py-2.5 text-sm font-bold">Alertas do mês</p>
+        <div className="max-h-80 divide-y overflow-y-auto">
+          {alerts.length === 0 && <p className="px-4 py-6 text-center text-sm text-muted-foreground">Tudo em ordem.</p>}
+          {alerts.map((a) => (
+            <Link key={a.id} to={a.to} className="flex gap-2 px-4 py-2.5 text-sm hover:bg-muted">
+              <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", a.tone === "danger" ? "bg-danger" : a.tone === "warning" ? "bg-warning" : "bg-info")} />
+              {a.text}
+            </Link>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function Profile() {
+  const { dispatch } = useFinance();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="gap-2 px-2" aria-label="Menu do perfil">
+          <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">VC</span>
+          <span className="hidden text-sm font-medium sm:inline">Você</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel>
+          Perfil demonstrativo
+          <p className="text-xs font-normal text-muted-foreground">Sem login nesta etapa</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/configuracoes"><Settings className="size-4" /> Configurações</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            dispatch({ type: "reset" });
+            toast.success("Dados de demonstração restaurados");
+          }}
+        >
+          <RotateCcw className="size-4" /> Restaurar dados de demonstração
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <TxActionsProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset className="min-w-0">
+            <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur md:px-6">
+              <SidebarTrigger aria-label="Alternar menu" />
+              <div className="hidden sm:block"><DemoTag /></div>
+              <div className="ml-auto flex items-center gap-1">
+                <Notifications />
+                <Profile />
+              </div>
+            </header>
+            <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 md:p-6">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
+      </TxActionsProvider>
+    </TooltipProvider>
+  );
+}
