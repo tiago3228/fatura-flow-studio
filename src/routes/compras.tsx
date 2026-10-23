@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Scissors, Search, UserCheck, UserX, X } from "lucide-react";
+import { Plus, Scissors, Search, UserCheck, UserX, X } from "lucide-react";
 import { useFinance } from "@/lib/finance/store";
 import { TX_TYPE_LABEL, monthTxs, txCard, txStatus, availableMonths } from "@/lib/finance/calc";
 import { fmtBRL, fmtMonthLong, round2 } from "@/lib/finance/format";
@@ -40,7 +40,7 @@ function Compras() {
   const { state } = useFinance();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/compras" });
-  const { openAssign, openSplit, unassign } = useTxActions();
+  const { openAssign, openCreate, openSplit, unassign } = useTxActions();
   const [selected, setSelected] = useState<string[]>([]);
   const month = search.month ?? state.settings.month;
   const set = (patch: Partial<Search>) => navigate({ search: (s: Search) => ({ ...s, ...patch }), replace: true });
@@ -68,7 +68,7 @@ function Compras() {
 
   return (
     <>
-      <PageHeader title="Compras" description="Selecione lançamentos e direcione para a pessoa responsável" />
+      <PageHeader title="Compras" description="Selecione lançamentos e direcione para a pessoa responsável" actions={<Button onClick={openCreate}><Plus className="size-4" /> Nova compra</Button>} />
 
       <Panel>
         <div className="flex flex-wrap items-center gap-2 border-b p-3">

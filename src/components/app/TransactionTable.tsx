@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ExternalLink, MoreHorizontal, Scissors, Tag, UserCheck, UserX } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ExternalLink, MoreHorizontal, Pencil, Scissors, Tag, Trash2, UserCheck, UserX } from "lucide-react";
 import { useFinance } from "@/lib/finance/store";
 import { TX_TYPE_LABEL, allocatedSum, isCreditType, txCard, txStatus } from "@/lib/finance/calc";
 import { fmtBRL, fmtDate } from "@/lib/finance/format";
@@ -125,7 +125,7 @@ function Row({
   cardLabel: { name: string; last4: string } | null; personFilter?: string;
 }) {
   const { state, dispatch } = useFinance();
-  const { openAssign, openSplit, unassign } = useTxActions();
+  const { openAssign, openSplit, openEdit, deleteTx, unassign } = useTxActions();
   const status = txStatus(tx);
   const isPay = tx.type === "pagamento";
   const people = tx.allocations.map((a) => ({ ...a, name: state.people.find((p) => p.id === a.personId)?.name ?? "Pessoa removida" }));
@@ -136,6 +136,7 @@ function Row({
     <>
       <Item disabled={isPay} onSelect={() => openAssign([tx.id])}><UserCheck className="size-4" /> Direcionar para pessoa</Item>
       <Item disabled={isPay} onSelect={() => openSplit(tx.id)}><Scissors className="size-4" /> Dividir compra</Item>
+      <Item onSelect={() => openEdit(tx.id)}><Pencil className="size-4" /> Editar compra / parcela</Item>
       {tx.allocations.length > 0 && <Item onSelect={() => unassign([tx.id])}><UserX className="size-4" /> Remover atribuição</Item>}
       <Sep />
       <Item onSelect={async () => { await navigator.clipboard?.writeText(`${tx.description} · ${fmtDate(tx.date)} · ${fmtBRL(tx.amount)}`); }}><Copy className="size-4" /> Copiar compra</Item>
@@ -150,7 +151,9 @@ function Row({
             </Item>
           ))}
         </SubC>
-      </Sub>
+        </Sub>
+      <Sep />
+      <Item className="text-danger" onSelect={() => deleteTx(tx.id)}><Trash2 className="size-4" /> Excluir compra</Item>
     </>
   );
 

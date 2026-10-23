@@ -15,6 +15,9 @@ export type Action =
   | { type: "allocate"; txIds: string[]; personId: string }
   | { type: "split"; txId: string; allocations: Allocation[]; adjustmentNote?: string }
   | { type: "unassign"; txIds: string[] }
+  | { type: "updateTransaction"; txId: string; patch: { description: string; date: string; amount: number; installmentNumber: number | null; installmentTotal: number | null } }
+  | { type: "deleteTransaction"; txId: string }
+  | { type: "addTransaction"; transaction: Transaction }
   | { type: "setTxType"; txId: string; txType: TxType }
   | { type: "upsertPerson"; person: Person }
   | { type: "deletePerson"; personId: string }
@@ -123,6 +126,23 @@ export function reducer(s: FinanceState, a: Action): FinanceState {
           a.txIds.includes(t.id) ? { ...t, allocations: [], adjustmentNote: undefined } : t,
         ),
       };
+    case "updateTransaction":
+      return {
+        ...s,
+        transactions: s.transactions.map((t) => {
+          if (t.id !== a.txId) return t;
+          const updated: Transaction = { ...t, description: a.patch.description, date: a.patch.date, amount: a.patch.amount };
+          if (a.patch.installmentNumber === null) delete updated.installmentNumber;
+          else updated.installmentNumber = a.patch.installmentNumber;
+          if (a.patch.installmentTotal === null) delete updated.installmentTotal;
+          else updated.installmentTotal = a.patch.installmentTotal;
+          return updated;
+        }),
+      };
+    case "deleteTransaction":
+      return { ...s, transactions: s.transactions.filter((t) => t.id !== a.txId) };
+    case "addTransaction":
+      return { ...s, transactions: [...s.transactions, a.transaction] };
     case "setTxType":
       return {
         ...s,

@@ -1,11 +1,11 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { AlertTriangle, Check, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
 import {
   limitMessage, limitPct, limitStatus, personMonthTotal, splitEqually, txMonth,
 } from "@/lib/finance/calc";
-import { fmtBRL, fmtDate, parseBRL, round2 } from "@/lib/finance/format";
+import { fmtBRL, fmtDate, parseBRL, round2, uid } from "@/lib/finance/format";
 import type { Allocation, Person, Transaction } from "@/lib/finance/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LimitBadge } from "./badges";
 import { PersonDialog } from "./PersonDialog";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface TxActionsCtx {
   openAssign: (txIds: string[]) => void;
   openSplit: (txId: string) => void;
+  openEdit: (txId: string) => void;
+  openCreate: () => void;
+  deleteTx: (txId: string) => void;
   unassign: (txIds: string[]) => void;
 }
 const Ctx = createContext<TxActionsCtx | null>(null);
@@ -33,11 +37,17 @@ export function TxActionsProvider({ children }: { children: ReactNode }) {
   const { state, dispatch } = useFinance();
   const [assignIds, setAssignIds] = useState<string[] | null>(null);
   const [splitId, setSplitId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const api = useMemo<TxActionsCtx>(
     () => ({
       openAssign: (ids) => setAssignIds(ids),
       openSplit: (id) => setSplitId(id),
+      openEdit: (id) => setEditId(id),
+      openCreate: () => setCreateOpen(true),
+      deleteTx: (id) => setDeleteId(id),
       unassign: (ids) => {
         const before = state.transactions.filter((t) => ids.includes(t.id)).map((t) => ({ id: t.id, allocations: t.allocations, note: t.adjustmentNote }));
         dispatch({ type: "unassign", txIds: ids });
@@ -61,7 +71,68 @@ export function TxActionsProvider({ children }: { children: ReactNode }) {
       {children}
       {assignIds && <AssignDialog txs={assignTxs} onClose={() => setAssignIds(null)} />}
       {splitTx && <SplitDialog tx={splitTx} onClose={() => setSplitId(null)} />}
+      {editId && <EditTransactionDialog tx={state.transactions.find((t) => t.id === editId)} onClose={() => setEditId(null)} />}
+      {createOpen && <EditTransactionDialog onClose={() => setCreateOpen(false)} />}
+      <DeleteTransactionDialog tx={state.transactions.find((t) => t.id === deleteId)} onClose={() => setDeleteId(null)} />
     </Ctx.Provider>
+  );
+}
+
+function EditTransactionDialog({ tx, onClose }: { tx?: Transaction; onClose: () => void }) {
+  const { state, dispatch } = useFinance();
+  const [description, setDescription] = useState(tx?.description ?? "");
+  const [date, setDate] = useState(tx?.date ?? `${state.settings.month}-01`);
+  const [amount, setAmount] = useState(tx ? tx.amount.toFixed(2).replace(".", ",") : "");
+  const [installmentNumber, setInstallmentNumber] = useState(tx?.installmentNumber?.toString() ?? "");
+  const [installmentTotal, setInstallmentTotal] = useState(tx?.installmentTotal?.toString() ?? "");
+  const [invoiceId, setInvoiceId] = useState(tx?.invoiceId ?? state.invoices.find((invoice) => invoice.month === state.settings.month)?.id ?? state.invoices[0]?.id ?? "");
+  const value = parseBRL(amount);
+  const number = installmentNumber.trim() ? Number(installmentNumber) : null;
+  const total = installmentTotal.trim() ? Number(installmentTotal) : null;
+  const validInstallments = number === null && total === null || Number.isInteger(number) && Number.isInteger(total) && number > 0 && total > 0 && number <= total;
+  const canSave = description.trim().length > 1 && !!date && value !== undefined && Number.isFinite(value) && value !== 0 && (tx || !!invoiceId) && validInstallments;
+
+  const save = () => {
+    if (!canSave || value === undefined) return;
+    if (tx) {
+      dispatch({ type: "updateTransaction", txId: tx.id, patch: { description: description.trim(), date, amount: value, installmentNumber: number, installmentTotal: total } });
+      toast.success("Compra atualizada", { description: "Parcela, valor e demais informações foram corrigidos." });
+    } else {
+      dispatch({ type: "addTransaction", transaction: { id: uid("tx"), invoiceId, date, description: description.trim(), amount: value, type: "compra", ...(number !== null ? { installmentNumber: number } : {}), ...(total !== null ? { installmentTotal: total } : {}), allocations: [] } });
+      toast.success("Nova compra adicionada", { description: "Ela ficou pendente até ser direcionada para uma pessoa." });
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{tx ? "Editar compra" : "Adicionar nova compra"}</DialogTitle>
+          <DialogDescription>{tx ? "Corrija a descrição, o valor ou a parcela que veio incorreta da fatura." : "Cadastre uma compra manualmente na fatura selecionada."}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          {!tx && <label className="text-sm font-medium">Fatura<select className="mt-1 flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)}><option value="">Selecione a fatura</option>{[...state.invoices].sort((a, b) => b.month.localeCompare(a.month)).map((invoice) => <option key={invoice.id} value={invoice.id}>{invoice.month} · {state.cards.find((card) => card.id === invoice.cardId)?.name ?? "Cartão"} •••• {state.cards.find((card) => card.id === invoice.cardId)?.last4}</option>)}</select></label>}
+          <label className="text-sm font-medium">Descrição<Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex.: TV Samsung" /></label>
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium">Data<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><label className="text-sm font-medium">Valor<Input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0,00" /></label></div>
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium">Parcela atual (opcional)<Input inputMode="numeric" value={installmentNumber} onChange={(event) => setInstallmentNumber(event.target.value)} placeholder="Ex.: 5" /></label><label className="text-sm font-medium">Total de parcelas<Input inputMode="numeric" value={installmentTotal} onChange={(event) => setInstallmentTotal(event.target.value)} placeholder="Ex.: 21" /></label></div>
+          {!validInstallments && <p className="text-sm text-danger">Informe a parcela atual e o total corretamente, por exemplo 5 de 21.</p>}
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={save} disabled={!canSave}>{tx ? "Salvar alterações" : "Adicionar compra"}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteTransactionDialog({ tx, onClose }: { tx?: Transaction; onClose: () => void }) {
+  const { dispatch } = useFinance();
+  return (
+    <AlertDialog open={!!tx} onOpenChange={(open) => !open && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader><AlertDialogTitle>Excluir esta compra?</AlertDialogTitle><AlertDialogDescription>“{tx?.description}” será removida da fatura e dos totais. Essa ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (tx) { dispatch({ type: "deleteTransaction", txId: tx.id }); toast.success("Compra excluída"); } onClose(); }}>Excluir compra</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
