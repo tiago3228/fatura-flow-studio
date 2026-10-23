@@ -208,7 +208,11 @@ function SplitDialog({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
   const [mode, setMode] = useState<"valor" | "pct">("valor");
   const [rows, setRows] = useState<SplitRow[]>(() => {
     if (tx.allocations.length > 1) return tx.allocations.map((a) => ({ personId: a.personId, value: a.amount.toFixed(2).replace(".", ",") }));
-    const ids = active.slice(0, 2).map((p) => p.id);
+    const currentId = tx.allocations[0]?.personId;
+    const ids = [
+      ...(currentId ? [currentId] : []),
+      ...active.filter((p) => p.id !== currentId).map((p) => p.id),
+    ].slice(0, 2);
     const parts = splitEqually(tx.amount, ids.length || 1);
     return ids.map((id, i) => ({ personId: id, value: parts[i].toFixed(2).replace(".", ",") }));
   });
@@ -269,6 +273,7 @@ function SplitDialog({ tx, onClose }: { tx: Transaction; onClose: () => void }) 
             <ToggleGroupItem value="pct">Percentual (%)</ToggleGroupItem>
           </ToggleGroup>
           <Button variant="ghost" size="sm" onClick={equal}>Dividir igualmente</Button>
+          {active.length === 2 && <Button variant="ghost" size="sm" onClick={equal}>50% para cada</Button>}
         </div>
 
         <div className="space-y-2">

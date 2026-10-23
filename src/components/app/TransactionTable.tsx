@@ -191,11 +191,12 @@ function Row({
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="cursor-help">
-                    {shown.map((p) => p.name.split(" ")[0]).join(" + ")}
-                    <span className="num ml-1 text-xs text-muted-foreground">
-                      {personFilter ? fmtBRL(shown[0]?.amount ?? 0) : `(${people.length})`}
-                    </span>
+                  <span className="block cursor-help">
+                    {shown.map((p) => (
+                      <span key={p.personId} className="num mr-2 inline-block text-xs">
+                        {p.name.split(" ")[0]} {fmtBRL(p.amount)}
+                      </span>
+                    ))}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
