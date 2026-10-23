@@ -35,6 +35,18 @@ const previousInvoiceFor = (state: FinanceState, invoice: Invoice) =>
     .filter((candidate) => candidate.cardId === invoice.cardId && candidate.id !== invoice.id && candidate.month <= invoice.month)
     .sort((a, b) => b.month.localeCompare(a.month))[0];
 
+/** Preenche somente lançamentos ainda sem atribuição usando o titular cadastrado do cartão. */
+const assignInitialCardholders = (state: FinanceState): FinanceState => ({
+  ...state,
+  transactions: state.transactions.map((transaction) => {
+    if (transaction.allocations.length > 0 || transaction.type === "pagamento") return transaction;
+    const invoice = state.invoices.find((item) => item.id === transaction.invoiceId);
+    const card = invoice ? state.cards.find((item) => item.id === invoice.cardId) : undefined;
+    const holder = card ? state.people.find((person) => person.cardIds.includes(card.id)) : undefined;
+    return holder ? { ...transaction, allocations: [{ personId: holder.id, amount: transaction.amount }] } : transaction;
+  }),
+});
+
 const reconcileImportedTransactions = (state: FinanceState, invoice: Invoice, incoming: Transaction[]) => {
   const previous = previousInvoiceFor(state, invoice);
   if (!previous) return incoming;
@@ -60,7 +72,7 @@ const reconcileImportedTransactions = (state: FinanceState, invoice: Invoice, in
 export function reducer(s: FinanceState, a: Action): FinanceState {
   switch (a.type) {
     case "hydrate":
-      return a.state;
+      return assignInitialCardholders(a.state);
     case "reset":
       return createDemoState();
     case "setMonth":

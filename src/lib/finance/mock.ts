@@ -232,6 +232,15 @@ const rowsByCard: Record<string, Array<{ date: string; description: string; amou
 };
 const transactions: Transaction[] = Object.entries(rowsByCard).flatMap(([last4, entries]) => {
   const invoiceId = `inv_itau_2026_10_${last4}`;
-  return entries.map((entry, index) => ({ id: `tx_${last4}_${index + 1}`, invoiceId, date: entry.date, description: entry.description, amount: entry.amount, type: entry.amount < 0 ? "estorno" as const : /\b\d{1,2}\/\d{1,2}\b/.test(entry.description) ? "parcela" as const : /anuidade|taxa|iof|envio mens/i.test(entry.description) ? "tarifa" as const : "compra" as const, allocations: [] }));
+  const personId = cardMeta[last4 as keyof typeof cardMeta].holder;
+  return entries.map((entry, index) => ({
+    id: `tx_${last4}_${index + 1}`,
+    invoiceId,
+    date: entry.date,
+    description: entry.description,
+    amount: entry.amount,
+    type: entry.amount < 0 ? "estorno" as const : /\b\d{1,2}\/\d{1,2}\b/.test(entry.description) ? "parcela" as const : /anuidade|taxa|iof|envio mens/i.test(entry.description) ? "tarifa" as const : "compra" as const,
+    allocations: [{ personId, amount: entry.amount }],
+  }));
 });
 export const createDemoState = (): FinanceState => ({ settings: { month: "2026-10", warnPct: 80, compact: false, csvSeparator: ";", duplicateCheck: true, persist: true }, people, cards, invoices, transactions, plans: [] });
