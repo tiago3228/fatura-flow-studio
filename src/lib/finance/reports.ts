@@ -56,6 +56,37 @@ export function personReportTable(s: FinanceState, personId: string, month: stri
   };
 }
 
+/** Relatório completo para enviar à pessoa, sem limitar ao mês de referência. */
+export function personAllTransactionsTable(s: FinanceState, personId: string): ExportTable {
+  const person = s.people.find((item) => item.id === personId)!;
+  const rows = s.transactions
+    .filter((transaction) => transaction.type !== "pagamento" && transaction.allocations.some((allocation) => allocation.personId === personId))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.description.localeCompare(b.description, "pt-BR"))
+    .map((transaction) => {
+      const allocation = transaction.allocations.find((item) => item.personId === personId)!;
+      const card = txCard(s, transaction);
+      const invoice = s.invoices.find((item) => item.id === transaction.invoiceId);
+      const installment = transaction.installmentNumber ? `${transaction.installmentNumber}/${transaction.installmentTotal ?? "?"}` : "—";
+      return [
+        fmtDate(transaction.date),
+        invoice ? fmtMonth(invoice.month) : "—",
+        transaction.description,
+        installment,
+        card ? `•••• ${card.last4}` : "—",
+        transaction.amount,
+        allocation.amount,
+      ] as (string | number)[];
+    });
+  const total = round2(rows.reduce((sum, row) => sum + Number(row[6]), 0));
+  return {
+    title: `Todas as compras — ${person.name}`,
+    subtitle: "Valores atribuídos à pessoa em todos os meses disponíveis",
+    headers: ["Data", "Mês", "Descrição", "Parcela", "Cartão", "Compra", "Valor a pagar"],
+    rows,
+    footer: ["", "", "Total final", "", "", "", total],
+  };
+}
+
 export function peopleSummaryTable(s: FinanceState, month: string): ExportTable {
   return {
     title: "Gastos por pessoa",

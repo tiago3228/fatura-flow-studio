@@ -1,16 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
 import { limitMessage, limitStatus, monthTxs, totalFutureCommitted } from "@/lib/finance/calc";
 import { fmtBRL, fmtMonth, fmtMonthLong, round2 } from "@/lib/finance/format";
-import { personReport, personReportTable } from "@/lib/finance/reports";
+import { personAllTransactionsTable, personReport, personReportTable } from "@/lib/finance/reports";
 import { EmptyState, KpiCard, LimitBar, MonthSelect, Panel } from "@/components/app/common";
 import { LimitBadge, Pill } from "@/components/app/badges";
 import { TransactionTable } from "@/components/app/TransactionTable";
 import { PersonDialog } from "@/components/app/PersonDialog";
 import { ExportButtons } from "@/components/app/ExportButtons";
 import { Button } from "@/components/ui/button";
+import { exportPDF } from "@/lib/finance/export";
 
 export const Route = createFileRoute("/pessoas/$id")({
   head: () => ({
@@ -35,6 +37,8 @@ function PessoaDetalhe() {
   const st = limitStatus(r.total, p.limit, state.settings.warnPct);
   const msg = limitMessage(p.name, r.total, p.limit, state.settings.warnPct);
   const txs = monthTxs(state, m).filter((t) => t.allocations.some((a) => a.personId === p.id));
+  const allPersonTable = personAllTransactionsTable(state, p.id);
+  const allPersonTotal = Number(allPersonTable.footer?.at(-1) ?? 0);
   const maxHist = Math.max(p.limit, ...r.history.map((h) => h.total), 1);
 
   return (
@@ -45,7 +49,18 @@ function PessoaDetalhe() {
           <div className="flex items-center gap-2"><h1 className="text-2xl font-bold">{p.name}</h1><LimitBadge status={st} />{!p.active && <Pill>Inativa</Pill>}</div>
           <p className="text-sm text-muted-foreground">{p.notes || "Sem observações"} · {fmtMonthLong(m)}</p>
         </div>
-        <div className="flex flex-wrap gap-2"><MonthSelect /><Button variant="outline" onClick={() => setEdit(true)}><Pencil className="size-4" /> Editar</Button></div>
+        <div className="flex flex-wrap gap-2">
+          <MonthSelect />
+          <Button onClick={async () => {
+            try {
+              await exportPDF(allPersonTable, `quanto-${p.name.toLowerCase().replace(/\s+/g, "-")}-todas-as-compras.pdf`);
+              toast.success("PDF pronto para enviar", { description: `${allPersonTable.rows.length} compra(s) · total final de ${fmtBRL(allPersonTotal)}.` });
+            } catch (error) {
+              toast.error("Não foi possível gerar o PDF", { description: error instanceof Error ? error.message : undefined });
+            }
+          }}><FileText className="size-4" /> Gerar PDF com todas as compras</Button>
+          <Button variant="outline" onClick={() => setEdit(true)}><Pencil className="size-4" /> Editar</Button>
+        </div>
       </div>
 
       {msg && <p className="mb-4 rounded-lg bg-warning-soft px-3 py-2 text-sm font-medium text-warning">{msg}</p>}
