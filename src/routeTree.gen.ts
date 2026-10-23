@@ -11,6 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComprasRouteImport } from './routes/compras'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ParcelamentosRouteImport } from './routes/parcelamentos'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as CartoesIndexRouteImport } from './routes/cartoes.index'
+import { Route as CartoesIdRouteImport } from './routes/cartoes.$id'
 import { Route as FaturasIndexRouteImport } from './routes/faturas.index'
 import { Route as FaturasIdRouteImport } from './routes/faturas.$id'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas.index'
@@ -24,6 +29,31 @@ const IndexRoute = IndexRouteImport.update({
 const ComprasRoute = ComprasRouteImport.update({
   id: '/compras',
   path: '/compras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParcelamentosRoute = ParcelamentosRouteImport.update({
+  id: '/parcelamentos',
+  path: '/parcelamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartoesIndexRoute = CartoesIndexRouteImport.update({
+  id: '/cartoes/',
+  path: '/cartoes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartoesIdRoute = CartoesIdRouteImport.update({
+  id: '/cartoes/$id',
+  path: '/cartoes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaturasIndexRoute = FaturasIndexRouteImport.update({
@@ -50,16 +80,26 @@ const PessoasIdRoute = PessoasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/parcelamentos': typeof ParcelamentosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/cartoes/$id': typeof CartoesIdRoute
   '/faturas/$id': typeof FaturasIdRoute
   '/pessoas/$id': typeof PessoasIdRoute
+  '/cartoes/': typeof CartoesIndexRoute
   '/faturas/': typeof FaturasIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/parcelamentos': typeof ParcelamentosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/cartoes/$id': typeof CartoesIdRoute
   '/faturas/$id': typeof FaturasIdRoute
   '/pessoas/$id': typeof PessoasIdRoute
+  '/cartoes': typeof CartoesIndexRoute
   '/faturas': typeof FaturasIndexRoute
   '/pessoas': typeof PessoasIndexRoute
 }
@@ -67,8 +107,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/compras': typeof ComprasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/parcelamentos': typeof ParcelamentosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/cartoes/$id': typeof CartoesIdRoute
   '/faturas/$id': typeof FaturasIdRoute
   '/pessoas/$id': typeof PessoasIdRoute
+  '/cartoes/': typeof CartoesIndexRoute
   '/faturas/': typeof FaturasIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
 }
@@ -77,19 +122,39 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/compras'
+    | '/configuracoes'
+    | '/parcelamentos'
+    | '/relatorios'
+    | '/cartoes/$id'
     | '/faturas/$id'
     | '/pessoas/$id'
+    | '/cartoes/'
     | '/faturas/'
     | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/compras' | '/faturas/$id' | '/pessoas/$id' | '/faturas' | '/pessoas'
+    | '/'
+    | '/compras'
+    | '/configuracoes'
+    | '/parcelamentos'
+    | '/relatorios'
+    | '/cartoes/$id'
+    | '/faturas/$id'
+    | '/pessoas/$id'
+    | '/cartoes'
+    | '/faturas'
+    | '/pessoas'
   id:
     | '__root__'
     | '/'
     | '/compras'
+    | '/configuracoes'
+    | '/parcelamentos'
+    | '/relatorios'
+    | '/cartoes/$id'
     | '/faturas/$id'
     | '/pessoas/$id'
+    | '/cartoes/'
     | '/faturas/'
     | '/pessoas/'
   fileRoutesById: FileRoutesById
@@ -97,8 +162,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComprasRoute: typeof ComprasRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ParcelamentosRoute: typeof ParcelamentosRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  CartoesIdRoute: typeof CartoesIdRoute
   FaturasIdRoute: typeof FaturasIdRoute
   PessoasIdRoute: typeof PessoasIdRoute
+  CartoesIndexRoute: typeof CartoesIndexRoute
   FaturasIndexRoute: typeof FaturasIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
 }
@@ -117,6 +187,41 @@ declare module '@tanstack/react-router' {
       path: '/compras'
       fullPath: '/compras'
       preLoaderRoute: typeof ComprasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parcelamentos': {
+      id: '/parcelamentos'
+      path: '/parcelamentos'
+      fullPath: '/parcelamentos'
+      preLoaderRoute: typeof ParcelamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cartoes/': {
+      id: '/cartoes/'
+      path: '/cartoes'
+      fullPath: '/cartoes/'
+      preLoaderRoute: typeof CartoesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cartoes/$id': {
+      id: '/cartoes/$id'
+      path: '/cartoes/$id'
+      fullPath: '/cartoes/$id'
+      preLoaderRoute: typeof CartoesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faturas/': {
@@ -153,8 +258,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComprasRoute: ComprasRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  ParcelamentosRoute: ParcelamentosRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  CartoesIdRoute: CartoesIdRoute,
   FaturasIdRoute: FaturasIdRoute,
   PessoasIdRoute: PessoasIdRoute,
+  CartoesIndexRoute: CartoesIndexRoute,
   FaturasIndexRoute: FaturasIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
 }
