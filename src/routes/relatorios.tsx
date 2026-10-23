@@ -26,7 +26,7 @@ export const Route = createFileRoute("/relatorios")({
 });
 
 const REPORTS = [
-  ["pessoa", "Gastos por pessoa"], ["cartao", "Gastos por cartão"], ["periodo", "Por período"], ["pendentes", "Não atribuídas"],
+  ["consolidado", "Consolidado mensal"], ["pessoa", "Gastos por pessoa"], ["cartao", "Gastos por cartão"], ["periodo", "Por período"], ["pendentes", "Não atribuídas"],
   ["parcelas", "Parcelamentos ativos"], ["previsao", "Previsão futura"], ["limites", "Limites"], ["faturas", "Faturas importadas"], ["individual", "Relatório individual"],
 ] as const;
 type R = (typeof REPORTS)[number][0];
@@ -42,8 +42,28 @@ function Relatorios() {
   const [to, setTo] = useState(`${state.settings.month}-31`);
 
   const inCard = (t: (typeof state.transactions)[number]) => !card || txCard(state, t)?.id === card;
+  const consolidatedInvoices = state.invoices.filter((invoice) => invoice.month === month && (!card || invoice.cardId === card));
+  const consolidatedTransactions = state.transactions.filter((transaction) => transaction.type !== "pagamento" && consolidatedInvoices.some((invoice) => invoice.id === transaction.invoiceId));
+  const consolidatedOfficial = round2(consolidatedInvoices.reduce((sum, invoice) => sum + invoice.officialTotal, 0));
+  const consolidatedLaunches = round2(consolidatedTransactions.reduce((sum, transaction) => sum + transaction.amount, 0));
+  const consolidatedAllocated = round2(consolidatedTransactions.reduce((sum, transaction) => sum + transaction.allocations.reduce((subtotal, allocation) => subtotal + allocation.amount, 0), 0));
+  const consolidatedPending = consolidatedTransactions.filter((transaction) => txStatus(transaction) === "pendente").length;
   const table = (): ExportTable => {
     switch (kind) {
+      case "consolidado": return {
+        title: "Consolidado mensal de todos os cartões",
+        subtitle: fmtMonthLong(month),
+        headers: ["Cartão", "Final", "Total oficial", "Lançamentos", "Atribuído", "Pendentes", "Diferença"],
+        rows: state.cards.filter((c) => !card || c.id === card).map((c) => {
+          const invoices = state.invoices.filter((invoice) => invoice.cardId === c.id && invoice.month === month);
+          const txs = state.transactions.filter((transaction) => transaction.type !== "pagamento" && invoices.some((invoice) => invoice.id === transaction.invoiceId));
+          const official = round2(invoices.reduce((sum, invoice) => sum + invoice.officialTotal, 0));
+          const launches = round2(txs.reduce((sum, transaction) => sum + transaction.amount, 0));
+          const allocated = round2(txs.reduce((sum, transaction) => sum + transaction.allocations.reduce((subtotal, allocation) => subtotal + allocation.amount, 0), 0));
+          return [c.name, c.last4, official, txs.length, allocated, txs.filter((transaction) => txStatus(transaction) === "pendente").length, round2(official - launches)];
+        }).filter((row) => row[2] !== 0 || row[3] !== 0),
+        footer: ["Total geral", "", consolidatedOfficial, consolidatedTransactions.length, consolidatedAllocated, consolidatedPending, round2(consolidatedOfficial - consolidatedLaunches)],
+      };
       case "pessoa": return { title: "Gastos por pessoa", subtitle: fmtMonthLong(month), headers: ["Pessoa", "Limite", "Atribuído", "Saldo", "% usado"],
         rows: state.people.map((p) => { const t = round2(state.transactions.filter((x) => txMonth(state, x) === month && inCard(x)).reduce((s, x) => s + x.allocations.filter((a) => a.personId === p.id).reduce((y, a) => y + a.amount, 0), 0)); return [p.name, p.limit, t, round2(p.limit - t), `${Math.round(p.limit ? (t / p.limit) * 100 : 0)}%`]; }) };
       case "cartao": return { title: "Gastos por cartão", subtitle: fmtMonthLong(month), headers: ["Cartão", "Final", "Total oficial", "Lançamentos", "Pendentes"],
@@ -96,6 +116,15 @@ function Relatorios() {
             <KpiCard label="Compras divididas" value={fmtBRL(ind.splitTotal)} />
             <KpiCard label="Parcelas do mês" value={fmtBRL(round2(ind.plans.reduce((s, p) => s + p.monthValue, 0)))} />
             <KpiCard label="Parcelas futuras" value={fmtBRL(round2(ind.plans.reduce((s, p) => s + p.future, 0)))} hint={ind.history.map((h) => `${fmtMonth(h.month)} ${Math.round(h.total)}`).slice(-3).join(" · ")} />
+          </div>
+        )}
+
+        {kind === "consolidado" && (
+          <div className="grid gap-3 border-b p-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard label="Total oficial" value={fmtBRL(consolidatedOfficial)} hint={`${consolidatedInvoices.length} fatura(s)`} />
+            <KpiCard label="Lançamentos" value={fmtBRL(consolidatedLaunches)} hint={`${consolidatedTransactions.length} compra(s)`} />
+            <KpiCard label="Atribuído" value={fmtBRL(consolidatedAllocated)} hint={consolidatedOfficial ? `${Math.round((consolidatedAllocated / consolidatedOfficial) * 100)}% do oficial` : "—"} tone="success" />
+            <KpiCard label="Pendentes" value={consolidatedPending} hint="Sem responsável" tone={consolidatedPending ? "warning" : "success"} />
           </div>
         )}
 
