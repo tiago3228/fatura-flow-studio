@@ -11,6 +11,7 @@ import { Pill } from "@/components/app/badges";
 import { CardDialog } from "@/components/app/CardDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 export const Route = createFileRoute("/cartoes/")({
   head: () => ({
@@ -33,7 +34,9 @@ function Cartoes() {
       {state.cards.length === 0 && <EmptyState title="Nenhum cartão cadastrado" />}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {state.cards.map((c) => (
-          <article key={c.id} className={cn("fade-in-up rounded-xl border bg-card p-5 shadow-xs", !c.active && "opacity-60")}>
+          <ContextMenu key={c.id}>
+            <ContextMenuTrigger asChild>
+              <article className={cn("fade-in-up rounded-xl border bg-card p-5 shadow-xs", !c.active && "opacity-60")}>
             <div className="flex items-start justify-between">
               <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground"><CardIcon className="size-5" /></span>
               {c.active ? <Pill tone="success">Ativo</Pill> : <Pill>Inativo</Pill>}
@@ -50,7 +53,17 @@ function Cartoes() {
               <Button size="sm" variant="outline" onClick={() => setEdit(c)}><Pencil className="size-4" /> Editar</Button>
               <Button size="sm" variant="ghost" onClick={() => { dispatch({ type: "upsertCard", card: { ...c, active: !c.active } }); toast.success(c.active ? "Cartão desativado" : "Cartão reativado"); }}><Power className="size-4" /> {c.active ? "Desativar" : "Ativar"}</Button>
             </div>
-          </article>
+              </article>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-60">
+              <ContextMenuItem asChild><Link to="/cartoes/$id" params={{ id: c.id }}><Eye className="size-4" /> Ver detalhes</Link></ContextMenuItem>
+              <ContextMenuItem onSelect={() => setEdit(c)}><Pencil className="size-4" /> Editar cartão</ContextMenuItem>
+              <ContextMenuItem asChild><Link to="/compras" search={{ last4: c.last4 }}><CardIcon className="size-4" /> Ver compras deste cartão</Link></ContextMenuItem>
+              <ContextMenuItem onSelect={async () => { await navigator.clipboard?.writeText(`${c.name} •••• ${c.last4}`); toast.success("Identificação copiada"); }}><CardIcon className="size-4" /> Copiar identificação</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onSelect={() => { dispatch({ type: "upsertCard", card: { ...c, active: !c.active } }); toast.success(c.active ? "Cartão desativado" : "Cartão reativado"); }}><Power className="size-4" /> {c.active ? "Desativar cartão" : "Reativar cartão"}</ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         ))}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">* Datas estimadas pelo calendário; em meses com menos dias, considera-se o último dia do mês. O banco pode ajustar para dias úteis.</p>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Scissors, Tag, UserCheck, UserX } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, ExternalLink, MoreHorizontal, Scissors, Tag, UserCheck, UserX } from "lucide-react";
 import { useFinance } from "@/lib/finance/store";
 import { TX_TYPE_LABEL, allocatedSum, isCreditType, txCard, txStatus } from "@/lib/finance/calc";
 import { fmtBRL, fmtDate } from "@/lib/finance/format";
@@ -137,6 +137,9 @@ function Row({
       <Item disabled={isPay} onSelect={() => openAssign([tx.id])}><UserCheck className="size-4" /> Direcionar para pessoa</Item>
       <Item disabled={isPay} onSelect={() => openSplit(tx.id)}><Scissors className="size-4" /> Dividir compra</Item>
       {tx.allocations.length > 0 && <Item onSelect={() => unassign([tx.id])}><UserX className="size-4" /> Remover atribuição</Item>}
+      <Sep />
+      <Item onSelect={async () => { await navigator.clipboard?.writeText(`${tx.description} · ${fmtDate(tx.date)} · ${fmtBRL(tx.amount)}`); }}><Copy className="size-4" /> Copiar compra</Item>
+      <Item onSelect={() => { window.location.href = `/faturas/${tx.invoiceId}`; }}><ExternalLink className="size-4" /> Abrir fatura</Item>
       <Sep />
       <Sub>
         <SubT><Tag className="mr-2 size-4" /> Tipo de lançamento</SubT>

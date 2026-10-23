@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Eye, MoreHorizontal, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Copy, Eye, MoreHorizontal, Pencil, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
 import { limitMessage, limitStatus, personMonthTotal } from "@/lib/finance/calc";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 export const Route = createFileRoute("/pessoas/")({
   head: () => ({
@@ -52,7 +53,9 @@ function Pessoas() {
                   const rest = round2(p.limit - total);
                   const msg = limitMessage(p.name, total, p.limit, state.settings.warnPct);
                   return (
-                    <tr key={p.id} className={cn("hover:bg-muted/40 [&_td]:px-4 [&_td]:py-3", !p.active && "opacity-60")}>
+                    <ContextMenu key={p.id}>
+                      <ContextMenuTrigger asChild>
+                        <tr className={cn("hover:bg-muted/40 [&_td]:px-4 [&_td]:py-3", !p.active && "opacity-60")}>
                       <td>
                         <Link to="/pessoas/$id" params={{ id: p.id }} className="font-semibold hover:underline">{p.name}</Link>
                         {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
@@ -79,7 +82,17 @@ function Pessoas() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
-                    </tr>
+                        </tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent className="w-64">
+                        <ContextMenuItem asChild><Link to="/pessoas/$id" params={{ id: p.id }}><Eye className="size-4" /> Ver detalhes</Link></ContextMenuItem>
+                        <ContextMenuItem onSelect={() => setEdit(p)}><Pencil className="size-4" /> Editar pessoa</ContextMenuItem>
+                        <ContextMenuItem onSelect={async () => { await navigator.clipboard?.writeText(p.name); toast.success("Nome copiado"); }}><Copy className="size-4" /> Copiar nome</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => { dispatch({ type: "upsertPerson", person: { ...p, active: !p.active } }); toast.success(p.active ? "Pessoa desativada" : "Pessoa reativada"); }}><UserPlus className="size-4" /> {p.active ? "Desativar pessoa" : "Reativar pessoa"}</ContextMenuItem>
+                        <ContextMenuItem className="text-danger" onSelect={() => setDel(p)}><Trash2 className="size-4" /> Excluir pessoa</ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })}
               </tbody>
