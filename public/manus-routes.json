@@ -11,6 +11,7 @@
     { "path": "/parcelamentos", "title": "Parcelamentos" },
     { "path": "/calculadora", "title": "Calculadora" },
     { "path": "/relatorios", "title": "Relatórios" },
+    { "path": "/como-funciona", "title": "Como Funciona" },
     { "path": "/configuracoes", "title": "Configurações" }
   ]
 }

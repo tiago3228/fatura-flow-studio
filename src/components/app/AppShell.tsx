@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Bell, Calculator, CalendarClock, CreditCard, FileSpreadsheet, FileText, LayoutDashboard, RotateCcw, Settings, ShoppingBag, Users, Wallet,
+  Bell, BookOpen, Calculator, CalendarClock, CreditCard, FileSpreadsheet, FileText, LayoutDashboard, RotateCcw, Settings, ShoppingBag, Users, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ const NAV = [
   { title: "Parcelamentos", url: "/parcelamentos", icon: CalendarClock },
   { title: "Calculadora", url: "/calculadora", icon: Calculator },
   { title: "Relatórios", url: "/relatorios", icon: FileSpreadsheet },
+  { title: "Como Funciona", url: "/como-funciona", icon: BookOpen },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
 

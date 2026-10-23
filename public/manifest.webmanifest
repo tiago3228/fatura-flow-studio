@@ -1,6 +1,7 @@
 {
   "name": "Fatura Flow Studio",
   "short_name": "Fatura Flow",
+  "id": "/",
   "description": "Organizador de faturas, compras, pessoas, cartões e parcelas.",
   "start_url": "/",
   "scope": "/",
@@ -20,6 +21,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar compras",
+      "short_name": "Compras",
+      "url": "/compras",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Como funciona",
+      "short_name": "Tutoriais",
+      "url": "/como-funciona",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
