@@ -12,13 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FilterSelect, ALL } from "@/components/app/FilterSelect";
 
-type Search = { status?: string; person?: string; card?: string; type?: string; q?: string; month?: string };
+type Search = { status?: string; person?: string; card?: string; last4?: string; type?: string; q?: string; month?: string };
 
 export const Route = createFileRoute("/compras")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     status: typeof s.status === "string" ? s.status : undefined,
     person: typeof s.person === "string" ? s.person : undefined,
     card: typeof s.card === "string" ? s.card : undefined,
+    last4: typeof s.last4 === "string" ? s.last4 : undefined,
     type: typeof s.type === "string" ? s.type : undefined,
     q: typeof s.q === "string" ? s.q : undefined,
     month: typeof s.month === "string" ? s.month : undefined,
@@ -51,10 +52,11 @@ function Compras() {
     if (search.status && txStatus(t) !== search.status) return false;
     if (search.person && !t.allocations.some((a) => a.personId === search.person)) return false;
     if (search.card && txCard(state, t)?.id !== search.card) return false;
+    if (search.last4 && txCard(state, t)?.last4 !== search.last4) return false;
     if (search.type && t.type !== search.type) return false;
     return true;
   });
-  const hasFilters = !!(search.q || search.status || search.person || search.card || search.type || search.month);
+  const hasFilters = !!(search.q || search.status || search.person || search.card || search.last4 || search.type || search.month);
   const selValid = selected.filter((id) => txs.some((t) => t.id === id));
   const total = round2(txs.filter((t) => t.type !== "pagamento").reduce((sum, t) => sum + t.amount, 0));
   const pending = txs.filter((t) => txStatus(t) === "pendente").length;
@@ -78,6 +80,7 @@ function Compras() {
             options={[[ALL, "Todos os meses"], ...availableMonths(state).map((m) => [m, fmtMonthLong(m)] as [string, string])]} noAll />
           <FilterSelect label="Pessoa" value={search.person} onChange={(v) => set({ person: v })} options={state.people.map((p) => [p.id, p.name])} />
           <FilterSelect label="Cartão" value={search.card} onChange={(v) => set({ card: v })} options={state.cards.map((c) => [c.id, `${c.name} •••• ${c.last4}`])} />
+          <FilterSelect label="Final do cartão" value={search.last4} onChange={(v) => set({ last4: v })} options={state.cards.map((c) => [c.last4, `Final •••• ${c.last4}`])} />
           <FilterSelect label="Status" value={search.status} onChange={(v) => set({ status: v })} options={[["pendente", "Pendentes de direcionamento"], ["atribuida", "Atribuída"], ["dividida", "Dividida"], ["nao_aplica", "Não se aplica"]]} />
           <FilterSelect label="Tipo" value={search.type} onChange={(v) => set({ type: v })} options={(Object.keys(TX_TYPE_LABEL) as TxType[]).map((k) => [k, TX_TYPE_LABEL[k]])} />
           {hasFilters && (
