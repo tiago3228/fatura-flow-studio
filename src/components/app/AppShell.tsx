@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell, Calculator, CalendarClock, CreditCard, FileSpreadsheet, FileText, LayoutDashboard, RotateCcw, Settings, ShoppingBag, Users, Wallet,
@@ -134,6 +134,24 @@ function Profile() {
   );
 }
 
+function ConnectionStatus() {
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  if (online) return null;
+  return <div className="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-xs font-medium text-warning">Você está sem conexão. Alterações financeiras só serão confirmadas quando o servidor responder.</div>;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
@@ -149,6 +167,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Profile />
               </div>
             </header>
+            <ConnectionStatus />
             <main className="mx-auto w-full max-w-[1400px] flex-1 p-4 md:p-6">{children}</main>
           </SidebarInset>
         </SidebarProvider>

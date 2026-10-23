@@ -24,3 +24,13 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Estado da persistência
+
+O aplicativo possui hoje uma base local inicial e salva alterações no `localStorage` do navegador. Isso não é sincronização entre computadores. A integração com Supabase depende de um projeto configurado e das variáveis públicas `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, conforme `.env.example`; nenhuma chave real deve ser commitada.
+
+O schema inicial do banco está em `supabase/schema.sql` e deve ser validado no SQL Editor antes da integração do cliente. Enquanto as variáveis não estiverem configuradas, o aplicativo não deve afirmar que os dados estão sincronizados entre dispositivos.
+
+## PWA
+
+O projeto possui `public/manifest.webmanifest`, ícones em `public/icons/`, `public/sw.js` e `public/manus-routes.json`. O service worker usa cache apenas para o shell público da aplicação e não armazena respostas privadas, APIs ou dados financeiros. Operações financeiras ainda exigem confirmação do armazenamento configurado.
