@@ -32,7 +32,7 @@ export interface Invoice {
   /** Valor oficial informado na fatura */
   officialTotal: number;
   status: InvoiceStatus;
-  source: "demo" | "pdf_demo" | "planilha";
+  source: "demo" | "pdf" | "pdf_demo" | "planilha";
 }
 
 export interface Allocation {

@@ -80,7 +80,7 @@ function Faturas() {
                     <tr key={i.id} className="hover:bg-muted/40 [&_td]:px-3 [&_td]:py-3">
                       <td className="font-semibold">
                         <Link to="/faturas/$id" params={{ id: i.id }} className="hover:underline">{c?.name}</Link>
-                        {i.source !== "demo" && <span className="ml-2 text-xs font-normal text-muted-foreground">{i.source === "planilha" ? "via planilha" : "PDF demo"}</span>}
+                        {i.source !== "demo" && <span className="ml-2 text-xs font-normal text-muted-foreground">{i.source === "planilha" ? "via planilha" : i.source === "pdf" ? "via PDF" : "PDF demonstrativo"}</span>}
                       </td>
                       <td className="num">•••• {c?.last4}</td>
                       <td className="text-muted-foreground">{c?.issuer}</td>

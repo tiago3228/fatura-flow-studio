@@ -2,213 +2,28 @@ import { useRef, useState } from "react";
 import { AlertTriangle, Check, FileText, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
-import { demoPdfInvoice } from "@/lib/finance/mock";
-import { TX_TYPE_LABEL, isCreditType } from "@/lib/finance/calc";
-import { fmtBRL, fmtDate, fmtMonthLong, parseBRL, round2 } from "@/lib/finance/format";
+import { extractPdfText, parseInvoiceText, type ExtractedPdfRow } from "@/lib/finance/pdf";
+import { TX_TYPE_LABEL } from "@/lib/finance/calc";
+import { fmtBRL, fmtDate, fmtMonthLong, parseBRL, round2, uid } from "@/lib/finance/format";
 import type { Transaction, TxType } from "@/lib/finance/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DemoTag } from "./common";
 import { cn } from "@/lib/utils";
 
 type Step = "select" | "processing" | "review";
-const STAGES = ["Arquivo selecionado", "Leitura simulada", "Conferência", "Conclusão"];
+const STAGES = ["Arquivo selecionado", "Leitura local", "Conferência", "Conclusão"];
+type Row = ExtractedPdfRow & { amountStr: string };
 
-export function PdfImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function PdfImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { state, dispatch } = useFinance();
-  const [file, setFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<Step>("select");
-  const [stage, setStage] = useState(0);
-  const [drag, setDrag] = useState(false);
-  const [onlyReview, setOnlyReview] = useState(false);
-  const demo = demoPdfInvoice();
-  const [rows, setRows] = useState(() => demo.transactions.map((t) => ({ ...t, amountStr: t.amount.toFixed(2).replace(".", ",") })));
+  const [file, setFile] = useState<File | null>(null); const [error, setError] = useState<string | null>(null); const [warning, setWarning] = useState<string[]>([]); const [step, setStep] = useState<Step>("select"); const [stage, setStage] = useState(0); const [drag, setDrag] = useState(false); const [rows, setRows] = useState<Row[]>([]); const [official, setOfficial] = useState(""); const [dueDate, setDueDate] = useState(""); const [cardId, setCardId] = useState(state.cards[0]?.id ?? "");
   const input = useRef<HTMLInputElement>(null);
-
-  const reset = () => {
-    setFile(null); setError(null); setStep("select"); setStage(0); setOnlyReview(false);
-    setRows(demo.transactions.map((t) => ({ ...t, amountStr: t.amount.toFixed(2).replace(".", ",") })));
-  };
-  const close = () => { onOpenChange(false); setTimeout(reset, 200); };
-
-  const pick = (f?: File | null) => {
-    if (!f) return;
-    if (!f.name.toLowerCase().endsWith(".pdf")) { setError("Selecione um arquivo com extensão .pdf"); setFile(null); return; }
-    setError(null); setFile(f);
-  };
-
-  const process = () => {
-    if (!file) { setError("Nenhum arquivo selecionado."); return; }
-    setStep("processing"); setStage(1);
-    setTimeout(() => setStage(2), 900);
-    setTimeout(() => { setStage(3); setStep("review"); }, 1800);
-  };
-
-  const card = state.cards.find((c) => c.id === demo.invoice.cardId)!;
-  const parsed = rows.map((r) => ({ ...r, value: parseBRL(r.amountStr) }));
-  const invalid = parsed.filter((r) => r.value === null || !r.description.trim());
-  const sum = round2(parsed.reduce((s, r) => s + (r.value ?? 0), 0));
-  const diff = round2(demo.invoice.officialTotal - sum);
-  const already = state.invoices.some((i) => i.id === demo.invoice.id);
-  const credits = parsed.filter((r) => isCreditType(r.type));
-  const installments = parsed.filter((r) => r.type === "parcela");
-  const reviewItems = parsed.filter((r) => "review" in r && r.review);
-  const visible = onlyReview ? parsed.filter((r) => ("review" in r && r.review) || r.value === null) : parsed;
-
-  const confirm = () => {
-    const txs: Transaction[] = parsed.map((r) => ({
-      id: `${demo.invoice.id}_${r.id}`,
-      invoiceId: demo.invoice.id,
-      date: r.date,
-      description: r.description.trim(),
-      amount: r.value!,
-      type: r.type,
-      planId: "planId" in r ? r.planId : undefined,
-      installmentNumber: "installmentNumber" in r ? r.installmentNumber : undefined,
-      installmentTotal: "installmentTotal" in r ? r.installmentTotal : undefined,
-      allocations: [],
-    }));
-    dispatch({ type: "importInvoice", invoice: { ...demo.invoice, status: diff === 0 ? "em_revisao" : "inconsistente" }, transactions: txs });
-    toast.success("Importação demonstrativa concluída", { description: `Fatura ${card.name} de ${fmtMonthLong(demo.invoice.month)} adicionada com ${txs.length} lançamentos fictícios.` });
-    close();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className={cn("max-h-[92vh] overflow-y-auto", step === "review" ? "sm:max-w-4xl" : "sm:max-w-lg")}>
-        <DialogHeader>
-          <DialogTitle>Importar fatura PDF</DialogTitle>
-          <DialogDescription>
-            Nesta versão o PDF <b>não é lido</b>. Após selecionar o arquivo, mostramos uma fatura fictícia para demonstrar a conferência.
-          </DialogDescription>
-        </DialogHeader>
-
-        <ol className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          {STAGES.map((s, i) => (
-            <li key={s} className={cn("flex items-center gap-1.5", i <= stage ? "font-semibold text-primary" : "text-muted-foreground")}>
-              <span className={cn("grid size-5 place-items-center rounded-full border text-[10px]", i < stage && "border-primary bg-primary text-primary-foreground", i === stage && "border-primary")}>
-                {i < stage ? <Check className="size-3" /> : i + 1}
-              </span>
-              {s}
-            </li>
-          ))}
-        </ol>
-
-        {step === "select" && (
-          <>
-            <div
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
-              onClick={() => input.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files[0]); }}
-              className={cn("flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors hover:bg-muted/50", drag && "border-primary bg-accent", error && "border-danger")}
-            >
-              <Upload className="size-6 text-muted-foreground" />
-              <p className="font-semibold">Arraste o PDF aqui ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground">Apenas arquivos .pdf</p>
-              <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files?.[0])} aria-label="Arquivo PDF da fatura" />
-            </div>
-            {file && (
-              <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2 text-sm">
-                <FileText className="size-5 text-primary" />
-                <div className="min-w-0 flex-1"><p className="truncate font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p></div>
-                <Button variant="ghost" size="sm" onClick={() => setFile(null)}>Trocar</Button>
-              </div>
-            )}
-            {error && <p className="text-sm font-medium text-danger">{error}</p>}
-            <DialogFooter>
-              <Button variant="outline" onClick={close}>Cancelar</Button>
-              <Button onClick={process} disabled={!file}>Continuar</Button>
-            </DialogFooter>
-          </>
-        )}
-
-        {step === "processing" && (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <Loader2 className="size-8 animate-spin text-primary" />
-            <p className="font-semibold">{stage === 1 ? "Leitura simulada…" : "Preparando conferência…"}</p>
-            <p className="text-sm text-muted-foreground">Nenhum dado está sendo extraído do arquivo.</p>
-          </div>
-        )}
-
-        {step === "review" && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2"><DemoTag /><span className="text-xs text-muted-foreground">Arquivo: {file?.name} — conteúdo abaixo é fictício</span></div>
-            <div className="grid gap-3 rounded-lg border p-3 text-sm sm:grid-cols-4">
-              <div><p className="text-xs text-muted-foreground">Cartão identificado</p><p className="font-semibold">{card.name} •••• {card.last4}</p></div>
-              <div><p className="text-xs text-muted-foreground">Mês de referência</p><p className="font-semibold">{fmtMonthLong(demo.invoice.month)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Vencimento</p><p className="num font-semibold">{fmtDate(demo.invoice.dueDate)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Total oficial</p><p className="num font-semibold">{fmtBRL(demo.invoice.officialTotal)}</p></div>
-            </div>
-
-            <div className="grid gap-2 text-sm sm:grid-cols-4">
-              <Stat label="Lançamentos" value={String(parsed.length)} />
-              <Stat label="Parcelas identificadas" value={String(installments.length)} />
-              <Stat label="Créditos e estornos" value={`${credits.length} · ${fmtBRL(credits.reduce((s, r) => s + (r.value ?? 0), 0))}`} />
-              <Stat label="Soma x total oficial" value={diff === 0 ? "Confere" : `Diferença ${fmtBRL(diff)}`} tone={diff === 0 ? "ok" : "bad"} />
-            </div>
-
-            {(reviewItems.length > 0 || diff !== 0 || already || invalid.length > 0) && (
-              <div className="space-y-1 rounded-lg bg-warning-soft p-3 text-sm text-warning">
-                {already && <p className="flex gap-2"><AlertTriangle className="size-4 shrink-0" /> Esta fatura já foi importada. Confirmar substituirá os lançamentos anteriores dela.</p>}
-                {reviewItems.length > 0 && <p className="flex gap-2"><AlertTriangle className="size-4 shrink-0" /> {reviewItems.length} item(ns) precisam de revisão.</p>}
-                {diff !== 0 && <p className="flex gap-2"><AlertTriangle className="size-4 shrink-0" /> A soma dos lançamentos ({fmtBRL(sum)}) não confere com o total oficial. A diferença será mantida para conferência.</p>}
-                {invalid.length > 0 && <p className="flex gap-2"><AlertTriangle className="size-4 shrink-0" /> {invalid.length} linha(s) com valor ou descrição inválidos.</p>}
-              </div>
-            )}
-
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[680px] text-sm">
-                <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
-                  <tr className="[&_th]:px-3 [&_th]:py-2"><th>Data</th><th>Descrição</th><th>Tipo</th><th className="text-right">Valor (R$)</th></tr>
-                </thead>
-                <tbody className="divide-y">
-                  {visible.map((r) => {
-                    const flagged = ("review" in r && r.review) || r.value === null;
-                    return (
-                      <tr key={r.id} className={cn("[&_td]:px-3 [&_td]:py-1.5", flagged && "bg-warning-soft/50")}>
-                        <td className="num whitespace-nowrap text-muted-foreground">{fmtDate(r.date)}</td>
-                        <td>
-                          <Input value={r.description} aria-label="Descrição" className="h-8" onChange={(e) => setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, description: e.target.value } : x)))} />
-                          {"review" in r && r.review && <p className="mt-0.5 text-xs text-warning">{r.review}</p>}
-                        </td>
-                        <td>
-                          <Select value={r.type} onValueChange={(v) => setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, type: v as TxType } : x)))}>
-                            <SelectTrigger className="h-8 w-36" aria-label="Tipo"><SelectValue /></SelectTrigger>
-                            <SelectContent>{(Object.keys(TX_TYPE_LABEL) as TxType[]).map((k) => <SelectItem key={k} value={k}>{TX_TYPE_LABEL[k]}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </td>
-                        <td><Input value={r.amountStr} aria-label="Valor" inputMode="decimal" className={cn("num h-8 w-28 text-right ml-auto", r.value === null && "border-danger")} onChange={(e) => setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, amountStr: e.target.value } : x)))} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => { setStep("select"); setStage(0); }}>Voltar</Button>
-              <Button variant="outline" onClick={() => setOnlyReview((v) => !v)}>{onlyReview ? "Mostrar todas" : "Revisar compras"}</Button>
-              <Button onClick={confirm} disabled={invalid.length > 0}>Confirmar importação demonstrativa</Button>
-            </DialogFooter>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "ok" | "bad" }) {
-  return (
-    <div className="rounded-lg bg-muted px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("num font-bold", tone === "ok" && "text-success", tone === "bad" && "text-danger")}>{value}</p>
-    </div>
-  );
+  const close = () => { onOpenChange(false); setTimeout(() => { setFile(null); setError(null); setWarning([]); setStep("select"); setStage(0); setRows([]); setOfficial(""); setDueDate(""); }, 200); };
+  const pick = (next?: File | null) => { if (!next) return; if (!next.name.toLowerCase().endsWith(".pdf")) { setError("Selecione um arquivo com extensão .pdf"); return; } if (next.size > 20 * 1024 * 1024) { setError("O PDF deve ter no máximo 20 MB"); return; } setError(null); setFile(next); };
+  const process = async () => { if (!file) { setError("Nenhum arquivo selecionado."); return; } setStep("processing"); setStage(1); try { const text = await extractPdfText(file); const month = state.settings.month; const parsed = parseInvoiceText(text, month); setRows(parsed.rows.map((r) => ({ ...r, amountStr: r.amount.toFixed(2).replace(".", ",") }))); setOfficial(parsed.officialTotal === null ? "" : parsed.officialTotal.toFixed(2).replace(".", ",")); setDueDate(parsed.dueDate ?? ""); setWarning(parsed.warnings); setStage(3); setStep("review"); } catch (e) { setStep("select"); setError(e instanceof Error ? `Não foi possível ler este PDF: ${e.message}` : "Não foi possível ler este PDF."); } };
+  const parsed = rows.map((r) => ({ ...r, value: parseBRL(r.amountStr) })); const sum = round2(parsed.reduce((total, r) => total + (r.value ?? 0), 0)); const officialValue = parseBRL(official); const invalid = parsed.filter((r) => r.value === null || !r.description.trim()); const month = (dueDate || state.settings.month).slice(0, 7); const card = state.cards.find((c) => c.id === cardId); const diff = officialValue === null ? null : round2(officialValue - sum);
+  const confirm = () => { if (!card || !officialValue || invalid.length) return; const invoiceId = uid("invoice"); const txs: Transaction[] = parsed.map((r) => ({ id: uid("tx"), invoiceId, date: r.date, description: r.description.trim(), amount: r.value!, type: r.type, allocations: [] })); dispatch({ type: "importInvoice", invoice: { id: invoiceId, cardId: card.id, month, dueDate: dueDate || `${month}-${String(card.dueDay).padStart(2, "0")}`, officialTotal: officialValue, status: diff === 0 ? "em_revisao" : "inconsistente", source: "pdf" }, transactions: txs }); toast.success("Fatura lida e adicionada para conferência", { description: `${txs.length} lançamento(s) extraído(s) localmente. Nenhuma atribuição foi feita automaticamente.` }); close(); };
+  return <Dialog open={open} onOpenChange={(value) => (value ? onOpenChange(true) : close())}><DialogContent className={cn("max-h-[92vh] overflow-y-auto", step === "review" ? "sm:max-w-5xl" : "sm:max-w-lg")}><DialogHeader><DialogTitle>Importar fatura PDF</DialogTitle><DialogDescription>O PDF é lido localmente no navegador. Os lançamentos reconhecidos sempre passam por revisão antes de serem adicionados.</DialogDescription></DialogHeader><ol className="flex flex-wrap gap-x-4 gap-y-1 text-xs">{STAGES.map((label, i) => <li key={label} className={cn("flex items-center gap-1.5", i <= stage ? "font-semibold text-primary" : "text-muted-foreground")}><span className={cn("grid size-5 place-items-center rounded-full border text-[10px]", i < stage && "border-primary bg-primary text-primary-foreground", i === stage && "border-primary")}>{i < stage ? <Check className="size-3" /> : i + 1}</span>{label}</li>)}</ol>{step === "select" && <><div role="button" tabIndex={0} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()} onClick={() => input.current?.click()} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files[0]); }} className={cn("flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center hover:bg-muted/50", drag && "border-primary bg-accent", error && "border-danger")}><Upload className="size-6 text-muted-foreground" /><p className="font-semibold">Arraste o PDF aqui ou clique para selecionar</p><p className="text-xs text-muted-foreground">PDF com texto selecionável · até 20 MB</p><input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => pick(e.target.files?.[0])} aria-label="Arquivo PDF da fatura" /></div>{file && <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2 text-sm"><FileText className="size-5 text-primary" /><div className="min-w-0 flex-1"><p className="truncate font-medium">{file.name}</p><p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p></div><Button variant="ghost" size="sm" onClick={() => setFile(null)}>Trocar</Button></div>}{error && <p className="text-sm font-medium text-danger">{error}</p>}<DialogFooter><Button variant="outline" onClick={close}>Cancelar</Button><Button onClick={process} disabled={!file}>Ler PDF</Button></DialogFooter></>}{step === "processing" && <div className="flex flex-col items-center gap-3 py-10 text-center"><Loader2 className="size-8 animate-spin text-primary" /><p className="font-semibold">Extraindo texto localmente…</p><p className="text-sm text-muted-foreground">O arquivo não é enviado para um servidor.</p></div>}{step === "review" && <div className="space-y-4"><div className="grid gap-3 sm:grid-cols-4"><label className="text-sm">Cartão<Select value={cardId} onValueChange={setCardId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{state.cards.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} •••• {c.last4}</SelectItem>)}</SelectContent></Select></label><label className="text-sm">Mês<Input type="month" value={month} onChange={(e) => setDueDate(`${e.target.value}-01`)} /></label><label className="text-sm">Vencimento<Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label className="text-sm">Total oficial<Input inputMode="decimal" value={official} onChange={(e) => setOfficial(e.target.value)} /></label></div>{warning.map((w) => <p key={w} className="flex gap-2 rounded-lg bg-warning-soft p-3 text-sm text-warning"><AlertTriangle className="size-4 shrink-0" />{w}</p>)}{diff !== null && diff !== 0 && <p className="flex gap-2 rounded-lg bg-danger-soft p-3 text-sm text-danger"><AlertTriangle className="size-4 shrink-0" />A soma reconhecida ({fmtBRL(sum)}) difere do total informado ({fmtBRL(officialValue!)}). A diferença ficará para conferência.</p>}<p className="text-sm text-muted-foreground">{parsed.length} lançamento(s) reconhecido(s). Revise descrição, tipo e valores antes de confirmar.</p><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[760px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr className="[&_th]:px-3 [&_th]:py-2"><th>Data</th><th>Descrição</th><th>Tipo</th><th className="text-right">Valor</th></tr></thead><tbody className="divide-y">{parsed.map((r) => <tr key={r.id} className={cn("[&_td]:px-3 [&_td]:py-2", r.value === null && "bg-danger-soft")}><td className="num whitespace-nowrap">{fmtDate(r.date)}</td><td><Input value={r.description} onChange={(e) => setRows((all) => all.map((x) => x.id === r.id ? { ...x, description: e.target.value } : x))} /></td><td><Select value={r.type} onValueChange={(value) => setRows((all) => all.map((x) => x.id === r.id ? { ...x, type: value as TxType } : x))}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{(Object.keys(TX_TYPE_LABEL) as TxType[]).map((type) => <SelectItem key={type} value={type}>{TX_TYPE_LABEL[type]}</SelectItem>)}</SelectContent></Select></td><td><Input className="num w-32 text-right" value={r.amountStr} onChange={(e) => setRows((all) => all.map((x) => x.id === r.id ? { ...x, amountStr: e.target.value } : x))} /></td></tr>)}</tbody></table></div><DialogFooter><Button variant="outline" onClick={() => setStep("select")}>Voltar</Button><Button onClick={confirm} disabled={!card || !officialValue || invalid.length > 0 || parsed.length === 0}>Confirmar importação para revisão</Button></DialogFooter></div>}</DialogContent></Dialog>;
 }
