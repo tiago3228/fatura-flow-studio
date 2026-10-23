@@ -22,6 +22,7 @@ export type Action =
   | { type: "upsertPlan"; plan: InstallmentPlan }
   | { type: "deletePlan"; planId: string }
   | { type: "importInvoice"; invoice: Invoice; transactions: Transaction[] }
+  | { type: "setInvoicePayments"; invoiceId: string; payments: NonNullable<Invoice["payments"]> }
   | { type: "setInvoiceStatus"; invoiceId: string; status: Invoice["status"] };
 
 const upsert = <T extends { id: string }>(list: T[], item: T) =>
@@ -170,6 +171,11 @@ export function reducer(s: FinanceState, a: Action): FinanceState {
       return {
         ...s,
         invoices: s.invoices.map((i) => (i.id === a.invoiceId ? { ...i, status: a.status } : i)),
+      };
+    case "setInvoicePayments":
+      return {
+        ...s,
+        invoices: s.invoices.map((i) => i.id === a.invoiceId ? { ...i, payments: a.payments } : i),
       };
   }
 }

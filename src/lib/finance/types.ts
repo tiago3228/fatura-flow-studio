@@ -33,7 +33,15 @@ export interface Invoice {
   /** Valor oficial informado na fatura */
   officialTotal: number;
   status: InvoiceStatus;
+  payments?: InvoicePayment[];
   source: "demo" | "pdf" | "pdf_demo" | "planilha";
+}
+
+export interface InvoicePayment {
+  personId: string;
+  amount: number;
+  /** YYYY-MM-DD */
+  paidAt: string;
 }
 
 export interface Allocation {

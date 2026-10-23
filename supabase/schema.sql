@@ -117,6 +117,7 @@ create table if not exists public.invoices (
   due_date date not null,
   official_total numeric(14,2) not null check (official_total >= 0),
   status text not null default 'em_revisao' check (status in ('conferida', 'em_revisao', 'inconsistente')),
+  payments jsonb not null default '[]'::jsonb check (jsonb_typeof(payments) = 'array'),
   source text not null default 'pdf' check (source in ('demo', 'pdf', 'pdf_demo', 'planilha')),
   original_filename text,
   imported_at timestamptz,
@@ -251,6 +252,8 @@ grant execute on function public.create_workspace(text) to authenticated;
 create index if not exists idx_workspace_members_user on public.workspace_members(user_id);
 create index if not exists idx_people_workspace on public.people(workspace_id);
 create index if not exists idx_cards_workspace on public.cards(workspace_id);
+alter table public.invoices add column if not exists payments jsonb not null default '[]'::jsonb;
+
 create index if not exists idx_invoices_workspace_month on public.invoices(workspace_id, reference_month desc);
 create index if not exists idx_transactions_invoice_date on public.transactions(invoice_id, transaction_date);
 create index if not exists idx_transactions_workspace on public.transactions(workspace_id);
