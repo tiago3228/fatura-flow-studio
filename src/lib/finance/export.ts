@@ -35,7 +35,7 @@ export async function exportXLSX(t: ExportTable, filename: string) {
   download(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
 }
 
-export async function exportPDF(t: ExportTable, filename: string) {
+export async function createPDFBlob(t: ExportTable) {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF();
@@ -56,5 +56,9 @@ export async function exportPDF(t: ExportTable, filename: string) {
     headStyles: { fillColor: [31, 76, 70] },
     footStyles: { fillColor: [235, 240, 238], textColor: 20 },
   });
-  doc.save(filename);
+  return doc.output("blob");
+}
+
+export async function exportPDF(t: ExportTable, filename: string) {
+  download(await createPDFBlob(t), filename);
 }

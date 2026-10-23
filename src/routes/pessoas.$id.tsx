@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Pencil, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
 import { limitMessage, limitStatus, monthTxs, totalFutureCommitted } from "@/lib/finance/calc";
@@ -12,7 +12,7 @@ import { TransactionTable } from "@/components/app/TransactionTable";
 import { PersonDialog } from "@/components/app/PersonDialog";
 import { ExportButtons } from "@/components/app/ExportButtons";
 import { Button } from "@/components/ui/button";
-import { exportPDF } from "@/lib/finance/export";
+import { createPDFBlob, exportPDF } from "@/lib/finance/export";
 
 export const Route = createFileRoute("/pessoas/$id")({
   head: () => ({
@@ -39,6 +39,7 @@ function PessoaDetalhe() {
   const txs = monthTxs(state, m).filter((t) => t.allocations.some((a) => a.personId === p.id));
   const allPersonTable = personAllTransactionsTable(state, p.id);
   const allPersonTotal = Number(allPersonTable.footer?.at(-1) ?? 0);
+  const pdfFilename = `quanto-${p.name.toLowerCase().replace(/\s+/g, "-")}-todas-as-compras.pdf`;
   const maxHist = Math.max(p.limit, ...r.history.map((h) => h.total), 1);
 
   return (
@@ -51,14 +52,31 @@ function PessoaDetalhe() {
         </div>
         <div className="flex flex-wrap gap-2">
           <MonthSelect />
-          <Button onClick={async () => {
+          <Button variant="outline" onClick={async () => {
             try {
-              await exportPDF(allPersonTable, `quanto-${p.name.toLowerCase().replace(/\s+/g, "-")}-todas-as-compras.pdf`);
-              toast.success("PDF pronto para enviar", { description: `${allPersonTable.rows.length} compra(s) · total final de ${fmtBRL(allPersonTotal)}.` });
+              await exportPDF(allPersonTable, pdfFilename);
+              toast.success("PDF baixado", { description: `${allPersonTable.rows.length} compra(s) · total final de ${fmtBRL(allPersonTotal)}.` });
             } catch (error) {
               toast.error("Não foi possível gerar o PDF", { description: error instanceof Error ? error.message : undefined });
             }
-          }}><FileText className="size-4" /> Gerar PDF com todas as compras</Button>
+          }}><Download className="size-4" /> Baixar PDF</Button>
+          <Button onClick={async () => {
+            try {
+              const blob = await createPDFBlob(allPersonTable);
+              const file = new File([blob], pdfFilename, { type: "application/pdf" });
+              const text = `Resumo de compras de ${p.name}: ${fmtBRL(allPersonTotal)} no total. O PDF está anexado.`;
+              if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                await navigator.share({ title: `Compras de ${p.name}`, text, files: [file] });
+              } else {
+                await exportPDF(allPersonTable, pdfFilename);
+                window.open(`https://wa.me/?text=${encodeURIComponent(`${text} O arquivo foi baixado; anexe o PDF nesta conversa.`)}`, "_blank", "noopener,noreferrer");
+              }
+              toast.success("Pronto para compartilhar", { description: "Selecione o WhatsApp ou outro aplicativo na janela de compartilhamento." });
+            } catch (error) {
+              if (error instanceof DOMException && error.name === "AbortError") return;
+              toast.error("Não foi possível compartilhar o PDF", { description: error instanceof Error ? error.message : undefined });
+            }
+          }}><Share2 className="size-4" /> Compartilhar WhatsApp</Button>
           <Button variant="outline" onClick={() => setEdit(true)}><Pencil className="size-4" /> Editar</Button>
         </div>
       </div>
