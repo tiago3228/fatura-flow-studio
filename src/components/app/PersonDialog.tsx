@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "./common";
 
-export function PersonDialog({ person, onClose }: { person?: Person; onClose: () => void }) {
+export function PersonDialog({ person, onClose, onSaved }: { person?: Person; onClose: () => void; onSaved?: (person: Person) => void }) {
   const { state, dispatch } = useFinance();
   const [name, setName] = useState(person?.name ?? "");
   const [limit, setLimit] = useState(person ? person.limit.toFixed(2).replace(".", ",") : "");
@@ -30,8 +30,10 @@ export function PersonDialog({ person, onClose }: { person?: Person; onClose: ()
   const save = () => {
     setTouched(true);
     if (!valid) return;
-    dispatch({ type: "upsertPerson", person: { id: person?.id ?? uid("p"), name: name.trim(), limit: lim!, notes: notes.trim() || undefined, active, cardIds } });
+    const savedPerson: Person = { id: person?.id ?? uid("p"), name: name.trim(), limit: lim!, notes: notes.trim() || undefined, active, cardIds };
+    dispatch({ type: "upsertPerson", person: savedPerson });
     toast.success(person ? "Pessoa atualizada" : "Pessoa adicionada", { description: name.trim() });
+    onSaved?.(savedPerson);
     onClose();
   };
 

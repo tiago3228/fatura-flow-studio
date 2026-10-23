@@ -6,7 +6,7 @@ import {
   limitMessage, limitPct, limitStatus, personMonthTotal, splitEqually, txMonth,
 } from "@/lib/finance/calc";
 import { fmtBRL, fmtDate, parseBRL, round2 } from "@/lib/finance/format";
-import type { Allocation, Transaction } from "@/lib/finance/types";
+import type { Allocation, Person, Transaction } from "@/lib/finance/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LimitBadge } from "./badges";
+import { PersonDialog } from "./PersonDialog";
 import { cn } from "@/lib/utils";
 
 interface TxActionsCtx {
@@ -68,6 +69,7 @@ function AssignDialog({ txs, onClose }: { txs: Transaction[]; onClose: () => voi
   const { state, dispatch } = useFinance();
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<string | null>(txs.length === 1 && txs[0].allocations.length === 1 ? txs[0].allocations[0].personId : null);
+  const [createPerson, setCreatePerson] = useState(false);
   const valid = txs.filter((t) => t.type !== "pagamento");
   const total = round2(valid.reduce((s, t) => s + t.amount, 0));
   const month = valid[0] ? txMonth(state, valid[0]) : state.settings.month;
@@ -91,7 +93,8 @@ function AssignDialog({ txs, onClose }: { txs: Transaction[]; onClose: () => voi
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <>
+      <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Direcionar para pessoa</DialogTitle>
@@ -116,6 +119,10 @@ function AssignDialog({ txs, onClose }: { txs: Transaction[]; onClose: () => voi
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input autoFocus placeholder="Buscar pessoa…" className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar pessoa" />
         </div>
+
+        <Button type="button" variant="outline" className="w-full justify-start" onClick={() => setCreatePerson(true)}>
+          <Plus className="size-4" /> Criar nova pessoa
+        </Button>
 
         <div className="max-h-72 space-y-1.5 overflow-y-auto" role="listbox" aria-label="Pessoas">
           {people.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma pessoa ativa encontrada.</p>}
@@ -176,7 +183,17 @@ function AssignDialog({ txs, onClose }: { txs: Transaction[]; onClose: () => voi
           <Button onClick={confirm} disabled={!sel || valid.length === 0}>Confirmar atribuição</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      {createPerson && (
+        <PersonDialog
+          onClose={() => setCreatePerson(false)}
+          onSaved={(person: Person) => {
+            setSel(person.id);
+            setQ("");
+          }}
+        />
+      )}
+    </>
   );
 }
 
