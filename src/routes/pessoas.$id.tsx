@@ -100,7 +100,7 @@ function PessoaDetalhe() {
         </Panel>
       </div>
 
-      <Panel className="mt-6" title="Relatório individual" description="Arquivo gerado no navegador com os dados de demonstração" actions={<ExportButtons table={() => personReportTable(state, p.id, m)} filename={`relatorio-${p.name.toLowerCase().replace(/\s+/g, "-")}-${m}`} />}>
+      <Panel className="mt-6" title="Relatório individual" description="Arquivo gerado no navegador com os dados atuais" actions={<ExportButtons table={() => personReportTable(state, p.id, m)} filename={`relatorio-${p.name.toLowerCase().replace(/\s+/g, "-")}-${m}`} />}>
         <p className="px-4 py-3 text-sm text-muted-foreground">Inclui {r.rows.length} lançamento(s), total de {fmtBRL(r.total)} e saldo de {fmtBRL(round2(p.limit - r.total))}.</p>
       </Panel>
 

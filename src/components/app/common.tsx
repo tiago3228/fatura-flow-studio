@@ -128,7 +128,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
 export function DemoTag() {
   return (
     <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-warning/50 bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
-      <FlaskConical className="size-3" /> Dados de demonstração
+      <FlaskConical className="size-3" /> Dados importados localmente
     </span>
   );
 }

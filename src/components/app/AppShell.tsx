@@ -64,7 +64,7 @@ function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <p className="px-2 pb-1 text-[11px] leading-snug opacity-60 group-data-[collapsible=icon]:hidden">
-          Versão de demonstração. Dados salvos apenas neste navegador.
+          Dados salvos apenas neste navegador.
         </p>
       </SidebarFooter>
     </Sidebar>
@@ -113,7 +113,7 @@ function Profile() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel>
-          Perfil demonstrativo
+          Perfil local
           <p className="text-xs font-normal text-muted-foreground">Sem login nesta etapa</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -123,10 +123,10 @@ function Profile() {
         <DropdownMenuItem
           onSelect={() => {
             dispatch({ type: "reset" });
-            toast.success("Dados de demonstração restaurados");
+            toast.success("Dados importados restaurados");
           }}
         >
-          <RotateCcw className="size-4" /> Restaurar dados de demonstração
+          <RotateCcw className="size-4" /> Restaurar dados importados
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

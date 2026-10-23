@@ -44,7 +44,7 @@ export async function exportPDF(t: ExportTable, filename: string) {
   doc.setFontSize(9);
   doc.setTextColor(110);
   if (t.subtitle) doc.text(t.subtitle, 14, 25);
-  doc.text("Dados de demonstração — gerado localmente no navegador", 14, t.subtitle ? 30 : 25);
+  doc.text("Gerado localmente no navegador a partir dos dados atuais", 14, t.subtitle ? 30 : 25);
   const fmt = (v: string | number) =>
     typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : v;
   autoTable(doc, {

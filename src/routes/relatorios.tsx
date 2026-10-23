@@ -67,7 +67,7 @@ function Relatorios() {
 
   return (
     <>
-      <PageHeader title="Relatórios" description="Os arquivos são gerados no navegador a partir dos dados de demonstração" />
+      <PageHeader title="Relatórios" description="Os arquivos são gerados no navegador a partir dos dados atuais" />
       <Panel>
         <div className="overflow-x-auto border-b p-3">
           <Tabs value={kind} onValueChange={(v) => setKind(v as R)}><TabsList className="h-auto flex-wrap">{REPORTS.map(([k, l]) => <TabsTrigger key={k} value={k}>{l}</TabsTrigger>)}</TabsList></Tabs>

@@ -17,7 +17,7 @@ export function ExportButtons({ table, filename }: { table: () => ExportTable; f
       if (kind === "csv") exportCSV(t, name, state.settings.csvSeparator);
       if (kind === "xlsx") await exportXLSX(t, name);
       if (kind === "pdf") await exportPDF(t, name);
-      toast.success(`Arquivo ${name} gerado`, { description: "Baixado pelo navegador com dados de demonstração." });
+      toast.success(`Arquivo ${name} gerado`, { description: "Baixado pelo navegador com os dados locais atuais." });
     } catch (e) {
       toast.error("Não foi possível gerar o arquivo", { description: e instanceof Error ? e.message : undefined });
     } finally {

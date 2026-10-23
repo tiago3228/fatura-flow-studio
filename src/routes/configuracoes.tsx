@@ -74,15 +74,15 @@ function Configuracoes() {
           <div className="divide-y">
             <div className="space-y-2 px-4 py-3 text-sm text-muted-foreground">
               <DemoTag />
-              <p>Esta é uma versão de demonstração, sem servidor e sem login. Os dados ficam apenas neste navegador e <b>não são sincronizados entre computadores</b>.</p>
+              <p>Esta é uma versão local, sem servidor e sem login. Os dados ficam apenas neste navegador e <b>não são sincronizados entre computadores</b>.</p>
               <p>A importação de PDF lê localmente PDFs com texto selecionável e sempre exige conferência. PDFs escaneados ou com layout não reconhecido são sinalizados para revisão manual. A planilha Excel também é lida localmente no navegador.</p>
             </div>
             <Row title="Guardar dados neste navegador" desc="Desligado, as alterações se perdem ao recarregar a página"><Switch checked={s.persist} onCheckedChange={(v) => set({ persist: v })} aria-label="Guardar dados neste navegador" /></Row>
-            <Row title="Restaurar dados de demonstração" desc="Apaga suas alterações locais">
+            <Row title="Restaurar dados importados" desc="Apaga suas alterações locais">
               <AlertDialog>
                 <AlertDialogTrigger asChild><Button variant="outline"><RotateCcw className="size-4" /> Restaurar</Button></AlertDialogTrigger>
                 <AlertDialogContent>
-                  <AlertDialogHeader><AlertDialogTitle>Restaurar dados de demonstração?</AlertDialogTitle><AlertDialogDescription>Todas as pessoas, cartões, atribuições e importações feitas aqui serão substituídas pelos dados fictícios originais.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogHeader><AlertDialogTitle>Restaurar dados importados?</AlertDialogTitle><AlertDialogDescription>As alterações locais serão substituídas pela base atual da fatura importada.</AlertDialogDescription></AlertDialogHeader>
                   <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { dispatch({ type: "reset" }); setWarn("80"); toast.success("Dados restaurados"); }}>Restaurar</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
