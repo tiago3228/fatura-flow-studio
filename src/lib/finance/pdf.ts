@@ -7,6 +7,8 @@ export type ExtractedPdfRow = {
   description: string;
   amount: number;
   type: TxType;
+  installmentNumber?: number;
+  installmentTotal?: number;
   review?: string;
 };
 
@@ -53,7 +55,8 @@ export function parseInvoiceText(rawText: string, fallbackMonth: string): Extrac
     if (!description || /total|vencimento|pagamento mínimo|limite disponível/i.test(description)) return;
     const negative = amount < 0 || /estorno|crédito|credito|devolução|devolucao/i.test(description);
     const type: TxType = negative ? (amount < 0 ? "estorno" : "credito") : /tarifa|encargo|iof|juros/i.test(description) ? "tarifa" : /\b\d{1,2}\s*\/\s*\d{1,2}\b/.test(description) ? "parcela" : "compra";
-    rows.push({ id: `pdf_${index}_${date}`, date, description, amount: round2(amount), type, review: description.length < 3 ? "Descrição curta — confira" : undefined });
+    const installment = description.match(/\b(\d{1,2})\s*\/\s*(\d{1,2})\b/);
+    rows.push({ id: `pdf_${index}_${date}`, date, description, amount: round2(amount), type, ...(installment ? { installmentNumber: Number(installment[1]), installmentTotal: Number(installment[2]) } : {}), ...(description.length < 3 ? { review: "Descrição curta — confira" } : {}) });
   });
   const totalCandidates = lines.filter((l) => /total da fatura|total fatura|valor total|total a pagar/i.test(l)).map(amountAtEnd).filter((v): v is number => v !== null);
   const dueLine = lines.find((l) => /vencimento|vence em/i.test(l));

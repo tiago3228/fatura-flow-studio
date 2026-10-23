@@ -15,6 +15,7 @@ export interface CreditCard {
   issuer: string;
   brand?: string;
   last4: string;
+  creditLimit?: number;
   closingDay: number;
   dueDay: number;
   active: boolean;

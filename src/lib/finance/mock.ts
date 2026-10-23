@@ -6,17 +6,17 @@ const people = [
   { id: "p_atena", name: "Atena Cardoso", limit: 0, active: true, cardIds: ["c_4494", "c_7264", "c_7473"], notes: "Limite individual não informado na fatura; defina no cadastro." },
 ];
 const cardMeta = {
-  4494: { holder: "p_atena", total: 208.37 },
-  7432: { holder: "p_tiago", total: 5021.01 },
-  7264: { holder: "p_atena", total: 3071.42 },
-  7473: { holder: "p_atena", total: 5616.54 },
-  4352: { holder: "p_tiago", total: 127.72 },
-  3390: { holder: "p_tiago", total: 640.26 },
-  9257: { holder: "p_tiago", total: 73.93 },
-  9206: { holder: "p_tiago", total: 120.00 },
-  0548: { holder: "p_tiago", total: 518.85 },
-  8222: { holder: "p_tiago", total: 507.74 },
-  0191: { holder: "p_tiago", total: 22.89 },
+  "4494": { holder: "p_atena", total: 208.37 },
+  "7432": { holder: "p_tiago", total: 5021.01 },
+  "7264": { holder: "p_atena", total: 3071.42 },
+  "7473": { holder: "p_atena", total: 5616.54 },
+  "4352": { holder: "p_tiago", total: 127.72 },
+  "3390": { holder: "p_tiago", total: 640.26 },
+  "9257": { holder: "p_tiago", total: 73.93 },
+  "9206": { holder: "p_tiago", total: 120.00 },
+  "0548": { holder: "p_tiago", total: 518.85 },
+  "8222": { holder: "p_tiago", total: 507.74 },
+  "0191": { holder: "p_tiago", total: 22.89 },
 } as const;
 const cards = Object.keys(cardMeta).map((last4) => ({ id: `c_${last4}`, name: `Itaú •••• ${last4}`, issuer: "Itaú", brand: "Visa", last4, closingDay: 16, dueDay: 23, active: true }));
 const invoices = cards.map((card) => ({ id: `inv_itau_2026_10_${card.last4}`, cardId: card.id, month: "2026-10", dueDate: "2026-10-23", officialTotal: cardMeta[card.last4 as keyof typeof cardMeta].total, status: "em_revisao" as const, source: "pdf" as const }));

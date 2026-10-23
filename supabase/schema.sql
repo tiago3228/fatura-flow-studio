@@ -95,6 +95,9 @@ create table if not exists public.cards (
   unique (workspace_id, id)
 );
 
+alter table public.cards
+  add column if not exists credit_limit numeric(14,2) check (credit_limit is null or credit_limit > 0);
+
 create table if not exists public.person_cards (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   person_id uuid not null references public.people(id) on delete cascade,

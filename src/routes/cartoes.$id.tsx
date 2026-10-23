@@ -39,9 +39,10 @@ function CartaoDetalhe() {
         <div><h1 className="text-2xl font-bold">{c.name} <span className="num text-muted-foreground">•••• {c.last4}</span></h1><p className="text-sm text-muted-foreground">{c.issuer}{c.brand && ` · ${c.brand}`} · fecha dia {c.closingDay}, vence dia {c.dueDay}</p></div>
         <Button variant="outline" onClick={() => setEdit(true)}><Pencil className="size-4" /> Editar</Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard label="Fatura atual" value={current ? fmtBRL(current.officialTotal) : "—"} hint={current ? fmtMonthLong(current.month) : "Sem faturas"} />
         <KpiCard label="Total de lançamentos" value={fmtBRL(totalTx)} hint={`${invs.length} fatura(s) importadas`} />
+        <KpiCard label="Limite de crédito" value={c.creditLimit === undefined ? "—" : fmtBRL(c.creditLimit)} hint={c.creditLimit === undefined ? "Não informado" : "Limite cadastrado"} />
         <KpiCard label="Próximo fechamento" value={fmtDate(nextOccurrence(c.closingDay))} hint="Estimativa pelo calendário" />
         <KpiCard label="Próximo vencimento" value={fmtDate(nextOccurrence(c.dueDay))} hint="Estimativa pelo calendário" />
       </div>

@@ -4,7 +4,7 @@ import { CreditCard as CardIcon, Eye, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
 import { useFinance } from "@/lib/finance/store";
 import { nextOccurrence } from "@/lib/finance/calc";
-import { fmtDate } from "@/lib/finance/format";
+import { fmtBRL, fmtDate } from "@/lib/finance/format";
 import type { CreditCard } from "@/lib/finance/types";
 import { EmptyState, PageHeader } from "@/components/app/common";
 import { Pill } from "@/components/app/badges";
@@ -43,6 +43,7 @@ function Cartoes() {
             <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-muted px-3 py-2"><dt className="text-xs text-muted-foreground">Fechamento</dt><dd className="font-semibold">Dia {c.closingDay}</dd><dd className="num text-xs text-muted-foreground">próx. {fmtDate(nextOccurrence(c.closingDay))}*</dd></div>
               <div className="rounded-lg bg-muted px-3 py-2"><dt className="text-xs text-muted-foreground">Vencimento</dt><dd className="font-semibold">Dia {c.dueDay}</dd><dd className="num text-xs text-muted-foreground">próx. {fmtDate(nextOccurrence(c.dueDay))}*</dd></div>
+              <div className="col-span-2 rounded-lg bg-muted px-3 py-2"><dt className="text-xs text-muted-foreground">Limite de crédito</dt><dd className="num font-semibold">{c.creditLimit === undefined ? "Não informado" : fmtBRL(c.creditLimit)}</dd></div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline"><Link to="/cartoes/$id" params={{ id: c.id }}><Eye className="size-4" /> Detalhes</Link></Button>
@@ -53,7 +54,8 @@ function Cartoes() {
         ))}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">* Datas estimadas pelo calendário; em meses com menos dias, considera-se o último dia do mês. O banco pode ajustar para dias úteis.</p>
-      {edit && <CardDialog card={edit === "new" ? undefined : edit} onClose={() => setEdit(null)} />}
+      {edit === "new" && <CardDialog onClose={() => setEdit(null)} />}
+      {edit && edit !== "new" && <CardDialog card={edit} onClose={() => setEdit(null)} />}
     </>
   );
 }

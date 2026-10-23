@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useRef, type ReactNode } from "react";
 import { createDemoState } from "./mock";
+import { planStatusAt } from "./calc";
 import type {
   Allocation, CreditCard, FinanceState, InstallmentPlan, Invoice, Person, Settings, Transaction, TxType,
 } from "./types";
@@ -25,6 +26,36 @@ export type Action =
 
 const upsert = <T extends { id: string }>(list: T[], item: T) =>
   list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
+
+const transactionMatchKey = (transaction: Pick<Transaction, "description" | "amount">) =>
+  `${transaction.description.toLowerCase().replace(/\b\d{1,2}\s*\/\s*\d{1,2}\b/g, "").replace(/[^a-z0-9]+/g, " ").trim()}|${transaction.amount.toFixed(2)}`;
+
+const previousInvoiceFor = (state: FinanceState, invoice: Invoice) =>
+  state.invoices
+    .filter((candidate) => candidate.cardId === invoice.cardId && candidate.id !== invoice.id && candidate.month <= invoice.month)
+    .sort((a, b) => b.month.localeCompare(a.month))[0];
+
+const reconcileImportedTransactions = (state: FinanceState, invoice: Invoice, incoming: Transaction[]) => {
+  const previous = previousInvoiceFor(state, invoice);
+  if (!previous) return incoming;
+  const candidates = state.transactions.filter((transaction) => transaction.invoiceId === previous.id);
+  const used = new Set<string>();
+  const transactions = incoming.map((transaction) => {
+    const match = candidates.find((candidate) => !used.has(candidate.id) && transactionMatchKey(candidate) === transactionMatchKey(transaction));
+    if (!match) return transaction;
+    used.add(match.id);
+    const restored: Transaction = {
+      ...transaction,
+      allocations: match.allocations,
+      ...(match.adjustmentNote !== undefined ? { adjustmentNote: match.adjustmentNote } : {}),
+    };
+    if (match.planId !== undefined) restored.planId = match.planId;
+    if (transaction.installmentNumber === undefined && match.installmentNumber !== undefined) restored.installmentNumber = match.installmentNumber;
+    if (transaction.installmentTotal === undefined && match.installmentTotal !== undefined) restored.installmentTotal = match.installmentTotal;
+    return restored;
+  });
+  return transactions;
+};
 
 export function reducer(s: FinanceState, a: Action): FinanceState {
   switch (a.type) {
@@ -91,11 +122,18 @@ export function reducer(s: FinanceState, a: Action): FinanceState {
         transactions: s.transactions.map((t) => (t.planId === a.planId ? { ...t, planId: undefined } : t)),
       };
     case "importInvoice":
-      return {
-        ...s,
-        invoices: upsert(s.invoices, a.invoice),
-        transactions: [...s.transactions.filter((t) => t.invoiceId !== a.invoice.id), ...a.transactions],
-      };
+      {
+        const reconciled = reconcileImportedTransactions(s, a.invoice, a.transactions);
+        return {
+          ...s,
+          invoices: upsert(s.invoices, a.invoice),
+          plans: s.plans.filter((plan) => plan.cardId !== a.invoice.cardId || planStatusAt(plan, a.invoice.month) !== "finalizado"),
+          transactions: [
+            ...s.transactions.filter((transaction) => transaction.invoiceId !== a.invoice.id),
+            ...reconciled,
+          ],
+        };
+      }
     case "setInvoiceStatus":
       return {
         ...s,
