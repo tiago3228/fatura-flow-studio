@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, CalendarClock, CircleDollarSign, Info, UserCheck, UserX, Users } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, CalendarClock, CircleDollarSign, Info, TrendingUp, UserCheck, UserX, Users } from "lucide-react";
 import { useFinance } from "@/lib/finance/store";
 import { useAlerts } from "@/lib/finance/alerts";
 import {
-  invoiceAllocatedTotal, invoiceLaunchesTotal, limitStatus, monthInvoices, monthTxs, personMonthTotal, totalFutureCommitted, txStatus,
+  addMonths, forecast, invoiceAllocatedTotal, invoiceLaunchesTotal, limitStatus, monthInvoices, monthTxs, personMonthTotal, totalFutureCommitted, txStatus,
 } from "@/lib/finance/calc";
 import { fmtBRL, fmtMonthLong, round2 } from "@/lib/finance/format";
 import { KpiCard, LimitBar, PageHeader, Panel } from "@/components/app/common";
@@ -34,7 +35,19 @@ function Overview() {
   const pending = monthTxs(state, m).filter((t) => txStatus(t) === "pendente");
   const pendingTotal = round2(pending.reduce((s, t) => s + t.amount, 0));
   const future = totalFutureCommitted(state, m);
+  const nextMonth = addMonths(m, 1);
+  const nextMonthInvoices = monthInvoices(state, nextMonth);
+  const nextMonthTxs = monthTxs(state, nextMonth).filter((t) => t.type !== "pagamento");
+  const nextMonthExpected = round2(forecast(state, m, 1)[0]?.value ?? 0);
+  const nextMonthActual = round2(nextMonthTxs.reduce((sum, transaction) => sum + transaction.amount, 0));
+  const nextMonthExtra = round2(Math.max(0, nextMonthActual - nextMonthExpected));
+  const [showExtra, setShowExtra] = useState(false);
   const people = state.people.filter((p) => p.active).map((p) => ({ ...p, total: personMonthTotal(state, p.id, m) }));
+  const extraByPerson = people.map((person) => {
+    const actual = personMonthTotal(state, person.id, nextMonth);
+    const expected = forecast(state, m, 1, person.id)[0]?.value ?? 0;
+    return { ...person, extra: round2(Math.max(0, actual - expected)), actual: round2(actual), expected: round2(expected) };
+  }).filter((person) => person.extra > 0);
   const atRisk = people.filter((p) => limitStatus(p.total, p.limit, state.settings.warnPct) !== "normal");
   const alerts = useAlerts();
 
@@ -49,6 +62,33 @@ function Overview() {
         <KpiCard label="Parcelas futuras" value={fmtBRL(future)} hint="Não somado à fatura atual" icon={<CalendarClock />} />
         <KpiCard label="Perto ou acima do limite" value={atRisk.length} hint={`de ${people.length} pessoas ativas`} icon={<Users />} tone={atRisk.some((p) => p.total > p.limit) ? "danger" : atRisk.length ? "warning" : "success"} />
       </div>
+
+      <Panel className="mt-6" title={`Próximo mês · ${fmtMonthLong(nextMonth)}`} description="Estimativa considerando apenas parcelas e compromissos já conhecidos">
+        <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard label="Se não gastar nada" value={fmtBRL(nextMonthExpected)} hint="Parcelas já comprometidas" icon={<CalendarClock />} />
+          <KpiCard label="Já lançado" value={fmtBRL(nextMonthActual)} hint={nextMonthInvoices.length ? `${nextMonthInvoices.length} fatura(s) importada(s)` : "Nenhuma fatura importada"} />
+          <KpiCard label="Gastou a mais" value={fmtBRL(nextMonthExtra)} hint="Itens novos além do previsto" tone={nextMonthExtra > 0 ? "warning" : "success"} icon={<TrendingUp />} />
+          <div className="flex items-center justify-center">
+            <Button variant="outline" onClick={() => setShowExtra((visible) => !visible)}><TrendingUp className="size-4" /> {showExtra ? "Ocultar gastos extras" : "Gastou a mais"}</Button>
+          </div>
+        </div>
+        {showExtra && (
+          <div className="border-t px-4 py-3">
+            {!nextMonthInvoices.length ? (
+              <p className="text-sm text-muted-foreground">Importe a fatura de {fmtMonthLong(nextMonth)} para identificar os itens novos e calcular quanto cada pessoa gastou a mais.</p>
+            ) : extraByPerson.length === 0 ? (
+              <p className="text-sm font-medium text-success">Nenhum gasto novo acima das parcelas previstas foi identificado.</p>
+            ) : (
+              <div>
+                <p className="mb-2 text-sm font-semibold">Itens novos acima do comprometido, por pessoa</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {extraByPerson.map((person) => <div key={person.id} className="flex items-center justify-between rounded-lg bg-warning-soft px-3 py-2 text-sm"><span>{person.name}</span><span className="num font-bold">{fmtBRL(person.extra)}</span></div>)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Panel>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <Panel
