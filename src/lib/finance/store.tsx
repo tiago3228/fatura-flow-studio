@@ -35,6 +35,26 @@ const previousInvoiceFor = (state: FinanceState, invoice: Invoice) =>
     .filter((candidate) => candidate.cardId === invoice.cardId && candidate.id !== invoice.id && candidate.month <= invoice.month)
     .sort((a, b) => b.month.localeCompare(a.month))[0];
 
+/** Recupera o cartão 0548 da fatura real quando uma versão local antiga não o tinha. */
+const ensure0548 = (state: FinanceState): FinanceState => {
+  const baseline = createDemoState();
+  const baselineCard = baseline.cards.find((card) => card.id === "c_0548");
+  const baselineInvoice = baseline.invoices.find((invoice) => invoice.cardId === "c_0548");
+  if (!baselineCard || !baselineInvoice) return state;
+
+  const cards = state.cards.some((card) => card.id === baselineCard.id) ? state.cards : [...state.cards, baselineCard];
+  const invoices = state.invoices.some((invoice) => invoice.id === baselineInvoice.id) ? state.invoices : [...state.invoices, baselineInvoice];
+  const people = state.people.map((person) => person.id === "p_tiago" && !person.cardIds.includes("c_0548")
+    ? { ...person, cardIds: [...person.cardIds, "c_0548"] }
+    : person);
+  const knownTransactionIds = new Set(state.transactions.map((transaction) => transaction.id));
+  const transactions = [
+    ...state.transactions,
+    ...baseline.transactions.filter((transaction) => !knownTransactionIds.has(transaction.id) && transaction.invoiceId === baselineInvoice.id),
+  ];
+  return { ...state, cards, invoices, people, transactions };
+};
+
 /** Preenche somente lançamentos ainda sem atribuição usando o titular cadastrado do cartão. */
 const assignInitialCardholders = (state: FinanceState): FinanceState => ({
   ...state,
@@ -72,7 +92,7 @@ const reconcileImportedTransactions = (state: FinanceState, invoice: Invoice, in
 export function reducer(s: FinanceState, a: Action): FinanceState {
   switch (a.type) {
     case "hydrate":
-      return assignInitialCardholders(a.state);
+      return assignInitialCardholders(ensure0548(a.state));
     case "reset":
       return createDemoState();
     case "setMonth":
