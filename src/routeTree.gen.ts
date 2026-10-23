@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CalculadoraRouteImport } from './routes/calculadora'
 import { Route as ComprasRouteImport } from './routes/compras'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ParcelamentosRouteImport } from './routes/parcelamentos'
@@ -24,6 +25,11 @@ import { Route as PessoasIdRouteImport } from './routes/pessoas.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalculadoraRoute = CalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComprasRoute = ComprasRouteImport.update({
@@ -79,6 +85,7 @@ const PessoasIdRoute = PessoasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
   '/compras': typeof ComprasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/parcelamentos': typeof ParcelamentosRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
   '/compras': typeof ComprasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/parcelamentos': typeof ParcelamentosRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/calculadora': typeof CalculadoraRoute
   '/compras': typeof ComprasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/parcelamentos': typeof ParcelamentosRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/calculadora'
     | '/compras'
     | '/configuracoes'
     | '/parcelamentos'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calculadora'
     | '/compras'
     | '/configuracoes'
     | '/parcelamentos'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/calculadora'
     | '/compras'
     | '/configuracoes'
     | '/parcelamentos'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CalculadoraRoute: typeof CalculadoraRoute
   ComprasRoute: typeof ComprasRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ParcelamentosRoute: typeof ParcelamentosRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calculadora': {
+      id: '/calculadora'
+      path: '/calculadora'
+      fullPath: '/calculadora'
+      preLoaderRoute: typeof CalculadoraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compras': {
@@ -257,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CalculadoraRoute: CalculadoraRoute,
   ComprasRoute: ComprasRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ParcelamentosRoute: ParcelamentosRoute,
