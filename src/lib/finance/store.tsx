@@ -4,7 +4,7 @@ import type {
   Allocation, CreditCard, FinanceState, InstallmentPlan, Invoice, Person, Settings, Transaction, TxType,
 } from "./types";
 
-const STORAGE_KEY = "fatura-organizer-demo-v1";
+const STORAGE_KEY = "fatura-organizer-real-itau-v2";
 
 export type Action =
   | { type: "hydrate"; state: FinanceState }
